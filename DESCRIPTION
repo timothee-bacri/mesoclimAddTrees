@@ -1,11 +1,11 @@
-Package: mesoclim-addtrees
+Package: mesoclimAddTrees
 Type: Package
 Title: Climate downscaling and bias correction with R for ADDTREES project
 Version: 0.1.0
 Authors@R: c(
     person("Ilya", "Maclean", email = "i.m.d.maclean@exeter.ac.uk", role = "cre"),
-    person("Jonathan", "Mosedale", email = "j.mosedale@exeter.ac.uk", role = "aut"))
     person("Alexandra", "Gardner", email = "a.gardner2@exeter.ac.uk", role = "aut"),
+    person("Jonathan", "Mosedale", email = "j.mosedale@exeter.ac.uk", role = "aut"))
 Maintainer: Ilya M. D. Maclean <i.m.d.maclean@exeter.ac.uk>
 Description: The functions in the mesoclim package contain tools for 
     downscaling daily climate data and for applying bias correction 
@@ -31,7 +31,8 @@ Imports:
     sf,
     terra,
     units,
-    zoo
+    zoo,
+    mesoclim
 RoxygenNote: 7.3.2
 Roxygen: list(markdown = TRUE) 
 Suggests: knitr,
@@ -41,7 +42,6 @@ VignetteBuilder: knitr
 URL: https://github.com/jrmosedale/mesoclim-addtrees
 BugReports: http://github.com/mesoclim-addtrees/issues
 Depends: 
-    mesoclim (>= 0.1.0),
     R (>= 2.10)
 Remotes:  
     ilyamaclean/mesoclim
