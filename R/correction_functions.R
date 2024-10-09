@@ -12,6 +12,7 @@
 #' dataset of era5 temperature data, calibrating against Met office data
 #' @import terra
 #' @import mgcv
+#' @import mesoclim
 #' @export
 #' @keywords biascorrect
 #' @rdname correct_era5temps
@@ -82,6 +83,7 @@ correct_era5temps<-function(era5hourly,era5correctmodels) {
 #' @param tasmin a stacked SpatRaster of haduk daily minimum temperatures (deg C)
 #' @param tasmax a stacked SpatRaster of haduk daily maximum temperatures (deg C)
 #' @param era5t2m a stacked SpatRaster of hourly ERA5 temperatures (deg C or K)
+#' @import mesoclim
 #' @import terra
 #' @importFrom Rcpp sourceCpp
 #' @export
@@ -120,6 +122,7 @@ blendtemp_hadukera5<-function(tasmin,tasmax,era5t2m) {
 #' @param modelrun - a numeric value (1 is convertyed to 01) indicating the model run. Used for reading in
 #' data, so file naming and foldr convention assumed to match that of data supplied via dropbox
 #' saves bias corrected daily ukcp data as compressed ncdf4 files
+#' @import mesoclim
 #' @noRd
 biascorrectukcpall<-function(pathtoera,pathtoukcp18,pathtoukcpdecade,pathout,decade,modelrun) {
   # file names

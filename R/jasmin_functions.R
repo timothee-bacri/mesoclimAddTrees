@@ -9,6 +9,8 @@
 #'
 #' @return spatRaster
 #' @export
+#' @importFrom terra crop extend rast project same.crs
+#' @importFrom mesoclim .resample
 #' @keywords jasmin
 #' @seealso [download_hadukdaily()]
 #' \dontrun{
@@ -34,9 +36,9 @@ addtrees_hadukdata<-function(startdate, enddate, dtmc, filepath="/badc/ukmo-hado
   files<-paste0(var,"_hadukgrid_uk_1km_day_",yrs,mtxt,"01-",yrs,mtxt,mdays,".nc")
 
   # Get aoi in projection of HadUK data OS projection and extend by one cell
-  r<-rast(file.path(filepath,files[1]))
-  if(!compareCRS(dtmc,r)) dtmc<-terra::project(dtmc,r)
-  dtmc_ext<-crop(extend(dtmc,1),dtmc)
+  r<-terra::rast(file.path(filepath,files[1]))
+  if(!terra::same.crs(dtmc,r)) dtmc<-terra::project(dtmc,r)
+  dtmc_ext<-terra::crop(terra::extend(dtmc,1),dtmc)
 
   # Load all monthly files to spatRaster then resample
   r_list<-list()
@@ -46,7 +48,7 @@ addtrees_hadukdata<-function(startdate, enddate, dtmc, filepath="/badc/ukmo-hado
     #terra::crs(r)<-'epsg:27700'
     e<-terra::crop(terra::extend(terra::crop(r[[1]],dtmc,snap='out'),1),r[[1]])
     r<-terra::crop(r,e)
-    r<-.resample(r,dtmc,msk=TRUE)
+    r<-mesoclim::.resample(r,dtmc,msk=TRUE)
     r_list[[n]]<-r
     n<-n+1
   }
@@ -62,7 +64,7 @@ addtrees_hadukdata<-function(startdate, enddate, dtmc, filepath="/badc/ukmo-hado
 #'
 #' @return spatrast object cropped to extended aoi
 #' @export
-#' @import terra
+#' @importFrom terra vect rast ext crs project crop extend
 #' @import units
 #' @keywords jasmin
 #' @examples
@@ -99,7 +101,7 @@ get_ukcp_dtm<-function(aoi, basepath=""){
 #'
 #' @return spatraster object
 #' @export
-#' @import terra
+#' @importFrom terra res mask crop aggregate
 #' @keywords preprocess
 #' @examples
 #' \dontrun{
@@ -148,6 +150,7 @@ get_dtmm<-function(aoi,dtmc,dtmuk,basepath=""){
 #' @export
 #' @import terra
 #' @import units
+#' @import mesoclim
 #' @keywords jasmin
 #' @seealso [ukcp18toclimarray()]
 #' @examples
@@ -189,7 +192,7 @@ addtrees_climdata <- function(aoi,  startdate, enddate,
   if(collection=='land-gcm') collres<-'60km' else collres<-'12km'
 
   # Identify which decades are required
-  decades<-.find_ukcp_decade(collection,startdate,enddate)
+  decades<-mesoclim::.find_ukcp_decade(collection,startdate,enddate)
 
   # Create coarse-resolution dtm to use as template for cropping etc !!!
   dtmc<-get_ukcp_dtm(aoi,basepath)
@@ -216,9 +219,9 @@ addtrees_climdata <- function(aoi,  startdate, enddate,
       r<-terra::crop(r,dtmc)
 
       # If requested then convert to real calendar dates and fill missing dates
-      ukcp_dates<-.get_ukcp18_dates(ncfile)
-      real_dates<-.correct_ukcp_dates(ukcp_dates)
-      r<-.fill_calendar_data(r, real_dates, testplot=sampleplot)
+      ukcp_dates<-mesoclim::.get_ukcp18_dates(ncfile)
+      real_dates<-mesoclim::.correct_ukcp_dates(ukcp_dates)
+      r<-mesoclim::.fill_calendar_data(r, real_dates, testplot=sampleplot)
 
       # Correct units
       terra::units(r)<-ukcp_u
@@ -232,7 +235,7 @@ addtrees_climdata <- function(aoi,  startdate, enddate,
       terra::add(var_r)<-r
     }
     # Check & convert units, check all rasters geoms are same
-    if(ukcp_u!=out_u) var_r<-.change_rast_units(var_r, out_u)
+    if(ukcp_u!=out_u) var_r<-mesoclim::.change_rast_units(var_r, out_u)
     if(!terra::compareGeom(dtmc,var_r)) warning(paste(v,"Spatrast NOT comparable to DTM!!") )
     clim_list[[v]]<-var_r
   }
@@ -249,11 +252,11 @@ addtrees_climdata <- function(aoi,  startdate, enddate,
 
   # Calculate derived variables: longwave downward
   tmean<-(clim_list$tasmax+clim_list$tasmin)/2
-  lwup<-terra::app(tmean, fun=.lwup)
+  lwup<-terra::app(tmean, fun=mesoclim::.lwup)
   clim_list$lwdown<-clim_list$rls+lwup
 
   # Calculate derived variables: shortwave downward from white & black sky albedo as rast timeseries or fixed land and sea values
-  clim_list$swdown<-.swdown(clim_list$rss, clim_list$clt, dtmc, wsalbedo, bsalbedo)
+  clim_list$swdown<-mesoclim::.swdown(clim_list$rss, clim_list$clt, dtmc, wsalbedo, bsalbedo)
 
   # Select and rename climate output rasts MIGHT NEED TO CHANGE THESE TO MATCH THOSE USED BY MESOCLIM FUNCTIONS
   clim_list<-clim_list[c("clt","hurs","pr","psl","lwdown","swdown","tasmax","tasmin", "windspeed","winddir")]

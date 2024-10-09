@@ -10,11 +10,6 @@
 #' @import magrittr
 #' @importFrom graphics legend matplot
 #' @keywords graph
-#' @examples
-#' climdata<- read_climdata(system.file('extdata/preprepdata/ukcp18rcm.Rds',package='mesoclim'))
-#' r<-terra::rast(climdata$tmax,crs=terra::crs(climdata$dtm),extent=terra::ext(climdata$dtm))
-#' terra::time(r)<-climdata$tme
-#' plot_timestats_r(r,'tmax',idx='doy')
 plot_timestats_r<-function(r,v,idx=c('years', 'months', 'week',  'doy', 'yearmonths', 'yearweeks', '7days','hour'),lgd=FALSE){
   if(idx=='hour'){
     time_mean<- global(r,"mean", na.rm=TRUE)
@@ -47,11 +42,6 @@ plot_timestats_r<-function(r,v,idx=c('years', 'months', 'week',  'doy', 'yearmon
 #' @return plots series of raster plots equal to the length of p
 #' @export
 #' @keywords graph
-#' @examples
-#' climdata<- read_climdata(system.file('extdata/preprepdata/ukcp18rcm.Rds',package='mesoclim'))
-#' r<-terra::rast(climdata$tmax,crs=terra::crs(climdata$dtm),extent=terra::ext(climdata$dtm))
-#' terra::time(r)<-climdata$tme
-#' plot_q_layers(r)
 plot_q_layers<-function(r,p=c(0, 0.5, 1),vtext='',fun='mean', common_scale=FALSE){
   par(mfrow=c(1,3), mai=c(1,0.1,0.1,0.1))
   # Find corresponding layers

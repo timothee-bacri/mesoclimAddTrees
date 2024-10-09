@@ -27,10 +27,4 @@ plots series of raster plots equal to the length of p
 \description{
 Plots chosen layers from raster stack corresponding to selected quantiles of spatial mean
 }
-\examples{
-climdata<- read_climdata(system.file('extdata/preprepdata/ukcp18rcm.Rds',package='mesoclim'))
-r<-terra::rast(climdata$tmax,crs=terra::crs(climdata$dtm),extent=terra::ext(climdata$dtm))
-terra::time(r)<-climdata$tme
-plot_q_layers(r)
-}
 \keyword{graph}

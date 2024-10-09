@@ -241,6 +241,7 @@ download_ukcp18<-function(
 #'
 #' @return downloaded file paths
 #' @export
+#' @import curl
 #' @keywords download ukcp18
 #' @examples
 #' \dontrun{
