@@ -70,10 +70,11 @@ addtrees_hadukdata<-function(startdate, enddate, dtmc, filepath="/badc/ukmo-hado
 #' dtmc<-get_ukcp_dtm(aoi, basepath=ceda_basepath)
 #' }
 get_ukcp_dtm<-function(aoi, basepath=""){
-  # Load dtm
+  # Load orography
   fname<-"orog_land-rcm_uk_12km_osgb.nc"
   path<-file.path(basepath,"badc/ukcp18/data/land-rcm/ancil/orog")
   dtmc<-terra::rast(file.path(path,fname))
+
   #terra::crs(dtmc)<-'epsg:27700'
   # Convert aoi to dtmc projection and if a vector convert to bounding box vect
   aoiproj<-terra::project(aoi,terra::crs(dtmc))
@@ -88,7 +89,6 @@ get_ukcp_dtm<-function(aoi, basepath=""){
   names(dtmc)<-'Elevation'
   return(dtmc_out)
 }
-
 
 #' @title Calculate medium resolution dtm from aoi, coarse (ukcp) dtmc and uk wide fine scale dtmuk
 #'

@@ -9,7 +9,7 @@ library(sf)
 library(mesoclim, lib.loc=dir_lib)
 library(lubridate)
 # library(mesoclim)
-
+# terraOptions(tempdir = "jasmin_location")
 ############## 1A INPUT FILES & DIRECTORIES ####################### #######################
 
 # basepath to badc/... oaths can be set is testing - use "" for runs on Jasmin
@@ -41,14 +41,13 @@ file.exists(ukdtm_file)
 dir_out<-file.path(dir_root,'mesoclim_outputs')  # output dir
 dir.exists(dir_out)
 
-
 ############## 1B PARAMETERS ####################### #######################
 
 # Start time for future climate timeseries.
-ftr_sdate<-as.POSIXlt('2023/01/01')
+ftr_sdate<-as.POSIXlt('2021/01/01')
 
 # End time for future climate timeseries.
-ftr_edate<-as.POSIXlt('2023/12/31') # If using shared data folder use max value of as.POSIXlt('2039/12/31')
+ftr_edate<-as.POSIXlt('2025/12/31') # If using shared data folder use max value of as.POSIXlt('2039/12/31')
 
 # Model run of UKCP18rcm to be downscaled.
 modelrun<-c('01')
@@ -91,11 +90,17 @@ if(outputs){
 }
 
 ### Prepare climate and seas surface data
+t0<-now()
+
 # Process climate data from UKCP18 regional files on ceda archive
 climdata<-addtrees_climdata(aoi,ftr_sdate,ftr_edate,collection='land-rcm',domain='uk',member='01',basepath=ceda_basepath)
 
 # Process sea surface temo data from ceda archive ??CHANGE OUTPUT TO PROJECTION OF DTMC/AOI? COMBINE WITH ABOVE?
 sstdata<-addtrees_sstdata(ftr_sdate,ftr_edate,aoi=climdata$dtm,member='01',basepath=ceda_basepath)
+
+dataprep_time<-now()-t0
+print(paste("Time for preparing data =", format(dataprep_time)))
+
 
 if(outputs){
   plot(project(sstdata[[1]],crs(dtmc)))
@@ -109,14 +114,15 @@ if(outputs) climdata<-checkinputs(climdata, tstep = "day")
 
 ############## 3 SPATIAL DOWNSCALE ####################### #######################
 # To DO: Add yearly loop - downscale->parcelcalcs
-
+# years<-unique(c(year(ftr_sdate):year(ftr_edate)))
+# for (yr in )
 t0<-now()
 mesoclimate<-spatialdownscale(climdata, sstdata, dtmf, dtmm, basins = NA, cad = TRUE,
                               coastal = TRUE, thgto =2, whgto=2,
                               rhmin = 20, pksealevel = TRUE, patchsim = TRUE,
-                              terrainshade = FALSE,
-                              precipmethod = "Elev", fast = TRUE, noraincut = 0.01)
-print(now()-t0)
+                              terrainshade = FALSE, precipmethod = "Elev", fast = TRUE, noraincut = 0.01)
+downscale_time<-now()-t0
+print(paste("Time for downscaling =", format(downscale_time)))
 
 if(outputs){
   climvars<-c('tmin','tmax','relhum','pres','swrad','lwrad','windspeed','winddir','prec')
@@ -138,6 +144,6 @@ t0<-now()
 parcel_list<-create_parcel_list(mesoclimate,parcels_v,id='gid')
 write_parcels(parcel_list, dir_out, overwrite='append')
 parcel_time<-now()-t0
-print(paste("Time for parcel calculation and writing =", round(parcel_time,2), "minutes."))
+print(paste("Time for parcel calculation and writing =", format(parcel_time)))
 
 

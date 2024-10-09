@@ -5,9 +5,10 @@
 #' @param parcels - sf or vect describing polygons for which climate data is required
 #' @param id - string of variable name in parcels corresponding to parcel identification field
 #'
-#' @return nested list of climate variable timeseries by parcel.
+#' @return list of dataframes of climate variable timeseries by parcel.
 #' @export
-#' @import terra
+#' @importFrom sf st_as_sf
+#' @importFrom exactextractr exact_extract
 #' @keywords postprocess data
 create_parcel_list<-function(climdata,parcels,id='gid',
                              input_names=c("tmax", "tmin","swrad","lwrad","relhum","pres","prec", "windspeed"),
@@ -16,6 +17,7 @@ create_parcel_list<-function(climdata,parcels,id='gid',
   if(any(!input_names %in% names(climdata))) stop('Input name NOT found in climate dataset provided')
   if(length(input_names)!=length(output_names)) stop('Different number of input and output names!!!')
   if(length(roundings)!=length(output_names)) stop('Different number of rounding values and output names!!!')
+  parcels<-st_as_sf(parcels)
   dtmf<-climdata$dtm
 
   # Create empty df for a parcel
@@ -25,8 +27,8 @@ create_parcel_list<-function(climdata,parcels,id='gid',
   parcel_df$date=as.Date(as.character(climdata$tme))
 
   # Create a list of parcel_dfs
-  parcel_list<- lapply(1:length(parcels), function(x) parcel_df)
-  names(parcel_list)<-values(parcels)[,id]
+  parcel_list<- lapply(1:nrow(parcels), function(x) parcel_df)
+  names(parcel_list)<-parcels[[id]]
 
   # Extract weighted means for each parcel by climate variable
   for (n in 1:length(input_names)){
@@ -35,9 +37,12 @@ create_parcel_list<-function(climdata,parcels,id='gid',
     rnd<-roundings[n]
     print(vin)
     r<-climdata[[vin]]
-    vals<-t(terra::extract(r,parcels,fun=mean,weights=TRUE,raw=TRUE,na.rm=TRUE, ID=FALSE)) # matrix of timestep x parcel
-    for(n in 1:length(parcels)) parcel_list[[n]][[vout]]<-round(vals[,n],rnd)
+    #vals<-t(terra::extract(r,parcels,fun=mean,weights=TRUE,raw=TRUE,na.rm=TRUE, ID=FALSE)) # matrix of timestep x parcel
+    vals<-round(exact_extract(r,parcels,'mean', weights='area'),rnd)
+    #for(n in 1:length(parcels)) parcel_list[[n]][[vout]]<-round(vals[,n],rnd)
+    for(n in 1:length(parcels)) parcel_list[[n]][[vout]]<-as.numeric(vals[n,])
   }
+
   return(parcel_list)
 }
 
@@ -70,3 +75,71 @@ write_parcels<-function(parcel_list, dir_out, overwrite=c('none','append','repla
     if(overwrite=='append') write.table(parcel_list[[n]], fout,sep = ",", row.names=FALSE, col.names = FALSE, append = T)
   }
 }
+
+#' Get parcel variable
+#' @description - get parcel values of chosen climate variable as mean/min/max values over all timesteps.
+#' Output suitable for easy mapping using `plot_parcel_var` function
+#' @param climdata - named list of climate timeseriess
+#' @param var - name of climdata element to be got
+#' @param parcels - vect or sf dataframe of parcel polygons
+#' @param id - unique id variable in parcels
+#' @param stat - summary statistic (min,max or mean) to be used to return single raster layer
+#'
+#' @return sf dataframe of parcels and variable values - suitable for mapping
+#' @export
+#' @importFrom terra app
+#' @importFrom sf st_as_sf
+#' @importFrom exactextractr exact_extract
+#' @examples
+get_parcel_var<-function(climdata,var, parcels,id='gid', stat=c('mean','min','max') ){
+  if(!var %in% names(climdata)) stop("Variable not found in climdata provided!!!")
+  if (class(climdata[[var]])[1]!="SpatRaster") stop("Date is not a spatraster!!!")
+  results_sf<-st_as_sf(parcels)
+
+  # Calculate stat across all layers
+  stat_r<-app(climdata[[var]],fun=stat)
+
+  # Extract variable
+  results_sf[[var]]<-exact_extract(stat_r,results_sf,'mean', weights='area')
+  return(results_sf)
+}
+
+#' Plot parcel variable as leaflet map
+#'
+#' @param parcels_sf - vect or sf object of parcels
+#' @param plotvar - name of variable column to be plotted in parcels_sf
+#' @param idvar - id variable in parcels_sf
+#'
+#' @return leaflet map object
+#' @export
+#' @import leaflet
+#' @importFrom sf st_transform st_coordinates st_centroid st_union st_make_valid
+#' @examples
+plot_parcel_var<-function(parcels_sf, plotvar='tmax', idvar='gid'){
+  minval<-floor(min(parcels_sf[[plotvar]]))
+  maxval<-ceiling(max(parcels_sf[[plotvar]]))
+
+  # Palette
+  pal_brks <- seq(minval, maxval, by=(maxval-minval)/9)
+  pal<-colorBin('BuGn',domain=c(pal_brks[1],pal_brks[length(pal_brks)+1]),bins=pal_brks,na.color="transparent",reverse=FALSE)
+
+  # Popup info
+  popup_text <- paste("<strong>Parcel ID: </strong>",  parcels_sf[[idvar]],
+                       "Temp =",round(parcels_sf[[plotvar]],1))
+
+  # Map
+  parcels_sf<-st_transform(parcels_sf,4326)
+  centre_pt<-st_coordinates(st_centroid(st_union(st_make_valid(parcels_sf))))
+
+  varmap<-leaflet(options=list(minZoom=8)) %>%
+    setView(lng = centre_pt[1], lat = centre_pt[2], zoom = 12) %>%
+    addProviderTiles(providers$OpenStreetMap.Mapnik,group="Streetmap") %>%
+    addPolygons(data=parcels_sf$geometry,col='black',fillColor=pal(parcels_sf[[plotvar]]),
+                weight = 0.5, fillOpacity = 1, opacity = 1,
+                popup = popup_text,
+                highlightOptions = highlightOptions(color = "yellow",weight = 2,
+                                                    fillColor = 'yellow', bringToFront = TRUE)) %>%
+  addLegend(position = "bottomleft", pal=pal,values=c(pal_brks[1],pal_brks[length(pal_brks)+1]))
+  return(varmap)
+}
+
