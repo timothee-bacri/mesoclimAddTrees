@@ -19,6 +19,7 @@ Imports:
     abind,
     curl,
     elevatr,
+    exactextractr,
     fields,
     fmsb,
     gstat,
