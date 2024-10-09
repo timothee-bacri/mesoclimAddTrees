@@ -39,6 +39,6 @@ sf dataframe of parcels and variable values - suitable for mapping
 \description{
 \itemize{
 \item get parcel values of chosen climate variable as mean/min/max values over all timesteps.
-Output suitable for easy mapping using \code{plot_parcel_var} function
+Output suitable for easy mapping using \code{map_parcel_var} function
 }
 }

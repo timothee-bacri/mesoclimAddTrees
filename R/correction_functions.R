@@ -247,3 +247,36 @@ biascorrectukcpall<-function(pathtoera,pathtoukcp18,pathtoukcpdecade,pathout,dec
   fo<-paste0(pathout,"pr_",mtxt,"_",to,".nc")
   savenc(pr,byr,"pr","Precipitation rate","mm/day",fo)
 }
+
+#' Subset climdata or sstdata by datetime
+#'
+#' @param climdata - either a SpatRaster with time variable or list of arrays or spatrasters as produced by `ukcp18toclimarray` or `addtrees_climdata`
+#' @param sdatetime - start datetime as POSIXlt
+#' @param edatetime  - end datetime as POSIXlt
+#'
+#' @return list of arrays or spatrasters in same format as climdata
+#' @export
+#' @importFrom terra subset
+subset_climdata<-function(climdata,sdatetime,edatetime){
+  if (class(climdata)[1]=='SpatRaster'){
+    sel<-which(time(climdata)>=sdatetime %m-% months(1) & time(climdata)<=edatetime %m+% months(1))
+    sel<-ifelse(sel<1,1,sel)
+    sel<-ifelse(sel>nlyr(climdata),nlyr(climdata),sel)
+    newdata <- subset(climdata,sel)
+  }
+
+  if (class(climdata)[1]=='list'){
+    sel<-which(climdata$tme>=sdatetime & climdata$tme<=edatetime)
+    newdata<-list()
+    newdata$dtm<-climdata$dtm
+    newdata$tme<-climdata$tme[sel]
+    newdata$windheight_m<-climdata$windheight_m
+    newdata$tempheight_m<-climdata$tempheight_m
+    vars<-names(climdata)[which(!names(climdata) %in% c('dtm','tme','windheight_m','tempheight_m'))]
+    for (v in vars){
+      if(class(climdata[[v]])[1]=='SpatRaster') newdata[[v]]<-subset(climdata[[v]],sel)
+      if(class(climdata[[v]])[1]=='array') newdata[[v]]<-climdata[[v]][,,sel]
+    }
+  }
+  return(newdata)
+}

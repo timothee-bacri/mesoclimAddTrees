@@ -40,7 +40,7 @@ create_parcel_list<-function(climdata,parcels,id='gid',
     #vals<-t(terra::extract(r,parcels,fun=mean,weights=TRUE,raw=TRUE,na.rm=TRUE, ID=FALSE)) # matrix of timestep x parcel
     vals<-round(exact_extract(r,parcels,'mean', weights='area'),rnd)
     #for(n in 1:length(parcels)) parcel_list[[n]][[vout]]<-round(vals[,n],rnd)
-    for(n in 1:length(parcels)) parcel_list[[n]][[vout]]<-as.numeric(vals[n,])
+    for(p in 1:nrow(parcels)) parcel_list[[p]][[vout]]<-as.numeric(vals[p,])
   }
 
   return(parcel_list)
@@ -78,7 +78,7 @@ write_parcels<-function(parcel_list, dir_out, overwrite=c('none','append','repla
 
 #' Get parcel variable
 #' @description - get parcel values of chosen climate variable as mean/min/max values over all timesteps.
-#' Output suitable for easy mapping using `plot_parcel_var` function
+#' Output suitable for easy mapping using `map_parcel_var` function
 #' @param climdata - named list of climate timeseriess
 #' @param var - name of climdata element to be got
 #' @param parcels - vect or sf dataframe of parcel polygons
@@ -90,7 +90,6 @@ write_parcels<-function(parcel_list, dir_out, overwrite=c('none','append','repla
 #' @importFrom terra app
 #' @importFrom sf st_as_sf
 #' @importFrom exactextractr exact_extract
-#' @examples
 get_parcel_var<-function(climdata,var, parcels,id='gid', stat=c('mean','min','max') ){
   if(!var %in% names(climdata)) stop("Variable not found in climdata provided!!!")
   if (class(climdata[[var]])[1]!="SpatRaster") stop("Date is not a spatraster!!!")
@@ -114,8 +113,7 @@ get_parcel_var<-function(climdata,var, parcels,id='gid', stat=c('mean','min','ma
 #' @export
 #' @import leaflet
 #' @importFrom sf st_transform st_coordinates st_centroid st_union st_make_valid
-#' @examples
-plot_parcel_var<-function(parcels_sf, plotvar='tmax', idvar='gid'){
+map_parcel_var<-function(parcels_sf, plotvar='tmax', idvar='gid'){
   minval<-floor(min(parcels_sf[[plotvar]]))
   maxval<-ceiling(max(parcels_sf[[plotvar]]))
 

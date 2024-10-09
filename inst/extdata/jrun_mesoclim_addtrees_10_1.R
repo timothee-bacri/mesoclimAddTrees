@@ -44,10 +44,10 @@ dir.exists(dir_out)
 ############## 1B PARAMETERS ####################### #######################
 
 # Start time for future climate timeseries.
-ftr_sdate<-as.POSIXlt('2021/01/01')
+ftr_sdate<-as.POSIXlt('2020/01/01')
 
 # End time for future climate timeseries.
-ftr_edate<-as.POSIXlt('2025/12/31') # If using shared data folder use max value of as.POSIXlt('2039/12/31')
+ftr_edate<-as.POSIXlt('2029/12/31') # If using shared data folder use max value of as.POSIXlt('2039/12/31')
 
 # Model run of UKCP18rcm to be downscaled.
 modelrun<-c('01')

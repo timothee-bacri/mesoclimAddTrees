@@ -44,10 +44,10 @@ dir.exists(dir_out)
 ############## 1B PARAMETERS ####################### #######################
 
 # Start time for future climate timeseries.
-ftr_sdate<-as.POSIXlt('2021/01/01')
+ftr_sdate<-as.POSIXlt('2020/01/01')
 
 # End time for future climate timeseries.
-ftr_edate<-as.POSIXlt('2025/12/31') # If using shared data folder use max value of as.POSIXlt('2039/12/31')
+ftr_edate<-as.POSIXlt('2029/12/31') # If using shared data folder use max value of as.POSIXlt('2039/12/31')
 
 # Model run of UKCP18rcm to be downscaled.
 modelrun<-c('01')
@@ -92,33 +92,36 @@ if(outputs){
 ### Prepare climate and seas surface data
 t0<-now()
 
-# Process climate data from UKCP18 regional files on ceda archive
-climdata<-addtrees_climdata(aoi,ftr_sdate,ftr_edate,collection='land-rcm',domain='uk',member='01',basepath=ceda_basepath)
 
-# Process sea surface temo data from ceda archive ??CHANGE OUTPUT TO PROJECTION OF DTMC/AOI? COMBINE WITH ABOVE?
-sstdata<-addtrees_sstdata(ftr_sdate,ftr_edate,aoi=climdata$dtm,member='01',basepath=ceda_basepath)
-
-dataprep_time<-now()-t0
-print(paste("Time for preparing data =", format(dataprep_time)))
-
-
-if(outputs){
-  plot(project(sstdata[[1]],crs(dtmc)))
-  plot(dtmm,add=T)
-  plot(aoi,add=TRUE)
-}
-
-# Check data - plot summary figs
-if(outputs) climdata<-checkinputs(climdata, tstep = "day")
 
 
 ############## 3 SPATIAL DOWNSCALE ####################### #######################
 years<-unique(c(year(ftr_sdate):year(ftr_edate)))
 for (yr in years){
+
 # To DO: Add yearly loop - downscale->parcelcalcs
   sdatetime<-as.POSIXlt(paste0(yr,'/01/01'))
   edatetime<-as.POSIXlt(paste0(yr,'/12/31'))
-  mesoclimate<-spatialdownscale(subset_climdata(climdata,sdatetime,edatetime), subset_climdata(sstdata,sdatetime,edatetime),
+
+  # Process climate data from UKCP18 regional files on ceda archive
+  climdata<-addtrees_climdata(aoi,sdatetime,edatetime,collection='land-rcm',domain='uk',member='01',basepath=ceda_basepath)
+
+  # Process sea surface temo data from ceda archive ??CHANGE OUTPUT TO PROJECTION OF DTMC/AOI? COMBINE WITH ABOVE?
+  sstdata<-addtrees_sstdata(sdatetime,edatetime,aoi=climdata$dtm,member='01',basepath=ceda_basepath)
+
+  dataprep_time<-now()-t0
+  print(paste("Time for preparing data =", format(dataprep_time)))
+
+
+  if(outputs){
+    plot(project(sstdata[[1]],crs(dtmc)))
+    plot(dtmm,add=T)
+    plot(aoi,add=TRUE)
+  }
+
+  # Check data - plot summary figs
+  if(outputs) climdata<-checkinputs(climdata, tstep = "day")
+  mesoclimate<-spatialdownscale(climdata, sstdata,
                                 dtmf, dtmm, basins = NA, cad = TRUE,
                                 coastal = TRUE, thgto =2, whgto=2,
                                 rhmin = 20, pksealevel = TRUE, patchsim = TRUE,
