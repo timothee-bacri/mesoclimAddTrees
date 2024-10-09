@@ -32,7 +32,8 @@ Imports:
     sf,
     terra,
     units,
-    zoo
+    zoo, 
+    mesoclim
 RoxygenNote: 7.3.2
 Roxygen: list(markdown = TRUE) 
 Suggests: knitr,
@@ -42,6 +43,5 @@ VignetteBuilder: knitr
 URL: https://github.com/jrmosedale/mesoclim-addtrees
 BugReports: http://github.com/mesoclim-addtrees/issues
 Depends: 
-    R (>= 2.10),
-    mesoclim (>= 0.1.0)
+    R (>= 2.10)
 Remotes: github::ilyamaclean/mesoclim
