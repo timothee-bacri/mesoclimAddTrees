@@ -57,7 +57,6 @@ collection<-'land-rcm'
 domain<-'uk'
 
 ############## 2 PREPARE INPUTS ####################### #######################
-# TO DO: Prepare climate data for whole decade - more effecicient than opening file for every year
 
 ### Area of interest and elevation data - AOI for downscaling defined by parcel data
 
@@ -91,9 +90,6 @@ if(outputs){
 
 ### Prepare climate and seas surface data
 t0<-now()
-
-
-
 
 ############## 3 SPATIAL DOWNSCALE ####################### #######################
 years<-unique(c(year(ftr_sdate):year(ftr_edate)))
