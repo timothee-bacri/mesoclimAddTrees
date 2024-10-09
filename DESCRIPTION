@@ -44,5 +44,4 @@ BugReports: http://github.com/mesoclim-addtrees/issues
 Depends: 
     R (>= 2.10),
     mesoclim (>= 0.1.0)
-Remotes:  
-    ilyamaclean/mesoclim
+Remotes: github::ilyamaclean/mesoclim
