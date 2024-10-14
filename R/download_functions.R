@@ -477,3 +477,15 @@ download_ancillary_era5<-function(dir_out,
   }
   return(file)
 }
+
+#' Calculate elevation from geopotential
+#'
+#' @param geop geopotential as downloaded by `download_ancillary_era5` can be spatraster or vector
+#' @param RadEarth radius of earth
+#' @param gravity speed of gravity
+#'
+#' @return elevation of same class as geop
+#' @export
+elev_from_geop<-function(geop, RadEarth=6371229, gravity=9.80665){
+  return((geop*RadEarth) / (gravity*RadEarth-geop))
+}
