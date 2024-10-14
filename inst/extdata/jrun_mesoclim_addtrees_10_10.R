@@ -62,6 +62,7 @@ collection<-'land-rcm'
 domain<-'uk'
 
 ############## 2 PREPARE INPUTS ####################### #######################
+# TO DO: Prepare climate data for whole decade - more effecicient than opening file for every year
 
 ### Area of interest and elevation data - AOI for downscaling defined by parcel data
 
@@ -96,49 +97,45 @@ if(outputs){
 ### Prepare climate and seas surface data
 t0<-now()
 
+# Process climate data from UKCP18 regional files on ceda archive
+climdata<-addtrees_climdata(aoi,ftr_sdate,ftr_edate,collection='land-rcm',domain='uk',member='01',basepath=ceda_basepath)
+
+# Process sea surface temo data from ceda archive ??CHANGE OUTPUT TO PROJECTION OF DTMC/AOI? COMBINE WITH ABOVE?
+sstdata<-addtrees_sstdata(ftr_sdate,ftr_edate,aoi=climdata$dtm,member='01',basepath=ceda_basepath)
+
+dataprep_time<-now()-t0
+print(paste("Time for preparing data =", format(dataprep_time)))
+
+
+if(outputs){
+  plot(project(sstdata[[1]],crs(dtmc)))
+  plot(dtmm,add=T)
+  plot(aoi,add=TRUE)
+}
+
+# Check data - plot summary figs
+if(outputs) climdata<-checkinputs(climdata, tstep = "day")
+
+
 ############## 3 SPATIAL DOWNSCALE ####################### #######################
-years<-unique(c(year(ftr_sdate):year(ftr_edate)))
-for (yr in years){
-
 # To DO: Add yearly loop - downscale->parcelcalcs
-  sdatetime<-as.POSIXlt(paste0(yr,'/01/01'))
-  edatetime<-as.POSIXlt(paste0(yr,'/12/31'))
-
-  # Process climate data from UKCP18 regional files on ceda archive
-  climdata<-addtrees_climdata(aoi,sdatetime,edatetime,collection='land-rcm',domain='uk',member='01',basepath=ceda_basepath)
-
-  # Process sea surface temo data from ceda archive ??CHANGE OUTPUT TO PROJECTION OF DTMC/AOI? COMBINE WITH ABOVE?
-  sstdata<-addtrees_sstdata(sdatetime,edatetime,aoi=climdata$dtm,member='01',basepath=ceda_basepath)
-
-  dataprep_time<-now()-t0
-  print(paste("Time for preparing data =", format(dataprep_time)))
-
-
-  if(outputs){
-    plot(project(sstdata[[1]],crs(dtmc)))
-    plot(dtmm,add=T)
-    plot(aoi,add=TRUE)
-  }
-
-  # Check data - plot summary figs
-  if(outputs) climdata<-checkinputs(climdata, tstep = "day")
-  mesoclimate<-spatialdownscale(climdata, sstdata,
+mesoclimate<-spatialdownscale(climdata, sstdata,
                                 dtmf, dtmm, basins = NA, cad = TRUE,
                                 coastal = TRUE, thgto =2, whgto=2,
                                 rhmin = 20, pksealevel = TRUE, patchsim = TRUE,
                                 terrainshade = FALSE, precipmethod = "Elev", fast = TRUE, noraincut = 0.01)
-  downscale_time<-now()-t0
-  print(paste("Time for downscaling =", format(downscale_time)))
+downscale_time<-now()-t0
+print(paste("Time for downscaling =", format(downscale_time)))
 
-  if(outputs){
-    climvars<-c('tmin','tmax','relhum','pres','swrad','lwrad','windspeed','winddir','prec')
-    for(var in climvars){
-      print(var)
-      r<-mesoclimate[[var]]
-      names(r)<-rep(var,nlyr(r))
-      plot_q_layers(r,vtext=var)
-    }
+if(outputs){
+  climvars<-c('tmin','tmax','relhum','pres','swrad','lwrad','windspeed','winddir','prec')
+  for(var in climvars){
+    print(var)
+    r<-mesoclimate[[var]]
+    names(r)<-rep(var,nlyr(r))
+    plot_q_layers(r,vtext=var)
   }
+}
 
 # write_climdata(mesoclimate,file.path(dir_out,'mesoclimate_1yr_test.Rds'))
 
@@ -148,11 +145,11 @@ for (yr in years){
 
 # Calculate parcel values
 #t0<-now()
-  parcel_list<-create_parcel_list(mesoclimate,parcels_v,id='gid')
-  write_parcels(parcel_list, dir_out, overwrite='append')
-  parcel_time<-now()-t0
-  print(paste("Time for parcel calculation and writing =", format(parcel_time)))
-}
+parcel_list<-create_parcel_list(mesoclimate,parcels_v,id='gid')
+write_parcels(parcel_list, dir_out, overwrite='append')
+parcel_time<-now()-t0
+print(paste("Time for parcel calculation and writing =", format(parcel_time)))
+
 total_time<-now()-t0
 print(paste("Total time =", format(parcel_time)))
 

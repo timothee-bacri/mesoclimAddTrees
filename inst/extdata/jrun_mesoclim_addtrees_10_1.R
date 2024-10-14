@@ -8,8 +8,9 @@ library(terra)
 library(sf)
 library(mesoclim, lib.loc=dir_lib)
 library(lubridate)
+library(mesoclimAddTrees, lib.loc=dir_lib)
 # library(mesoclim)
-# terraOptions(tempdir = "jasmin_location")
+terraOptions(tempdir = "/gws/nopw/j04/uknetzero/mesoclim/terra_storage")
 ############## 1A INPUT FILES & DIRECTORIES ####################### #######################
 
 # basepath to badc/... oaths can be set is testing - use "" for runs on Jasmin
@@ -41,10 +42,14 @@ file.exists(ukdtm_file)
 dir_out<-file.path(dir_root,'mesoclim_outputs')  # output dir
 dir.exists(dir_out)
 
+# Remove any existing parcel files in dir_out
+pfiles<-list.files(dir_out,full.names=TRUE, pattern="parcel")
+file.remove(pfiles)
+
 ############## 1B PARAMETERS ####################### #######################
 
 # Start time for future climate timeseries.
-ftr_sdate<-as.POSIXlt('2020/01/01')
+ftr_sdate<-as.POSIXlt('2021/01/01')
 
 # End time for future climate timeseries.
 ftr_edate<-as.POSIXlt('2029/12/31') # If using shared data folder use max value of as.POSIXlt('2039/12/31')
