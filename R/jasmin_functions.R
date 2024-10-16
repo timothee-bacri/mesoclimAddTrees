@@ -71,11 +71,11 @@ addtrees_hadukdata<-function(startdate, enddate, dtmc, filepath="/badc/ukmo-hado
 #' \dontrun{
 #' dtmc<-get_ukcp_dtm(aoi, basepath=ceda_basepath)
 #' }
-get_ukcp_dtm<-function(aoi, basepath=""){
+get_ukcp_dtm<-function(aoi, ukcpdtm_file){
   # Load orography
-  fname<-"orog_land-rcm_uk_12km_osgb.nc"
-  path<-file.path(basepath,"badc/ukcp18/data/land-rcm/ancil/orog")
-  dtmc<-terra::rast(file.path(path,fname))
+  #fname<-"orog_land-rcm_uk_12km_osgb.nc"
+  #path<-file.path(basepath,"badc/ukcp18/data/land-rcm/ancil/orog")
+  dtmc<-terra::rast(ukcpdtm_file)
 
   #terra::crs(dtmc)<-'epsg:27700'
   # Convert aoi to dtmc projection and if a vector convert to bounding box vect
@@ -107,7 +107,7 @@ get_ukcp_dtm<-function(aoi, basepath=""){
 #' \dontrun{
 #' dtmm<-get_dtmm(aoi,dtmc,dtmuk,basepath=ceda_basepath)
 #' }
-get_dtmm<-function(aoi,dtmc,dtmuk,basepath=""){
+get_dtmm<-function(dtmf,dtmc,dtmuk){
   dtmm_res<-round(exp( ( log(terra::res(dtmc)[1]) + log(terra::res(dtmf)[1]) ) / 2 ))
   dtmm_f<-terra::mask(terra::crop(terra::crop(dtmuk,dtmc),dtmuk),coast_v)
   dtmm<-terra::mask(terra::aggregate(dtmm_f,dtmm_res / res(dtmf),  na.rm=TRUE),coast_v, touches=FALSE)

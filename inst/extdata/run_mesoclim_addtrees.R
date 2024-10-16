@@ -1,32 +1,30 @@
 ############## Code executable on Jasmin #######################
- prj <- system.file("proj", package = "terra")[1]
- Sys.setenv("PROJ_LIB" = prj)
+# prj <- system.file("proj", package = "terra")[1]
+# Sys.setenv("PROJ_LIB" = prj)
 
 ############## LIBRARIES ####################### #######################
-dir_lib<-"/gws/nopw/j04/uknetzero/mesoclim/mesoclim_lib"
 library(terra)
 library(sf)
-library(mesoclim, lib.loc=dir_lib)
 library(mesoclimAddTrees)
 library(lubridate)
-# library(mesoclim)
-# terraOptions(tempdir = "jasmin_location")
+library(mesoclim)
+
 ############## 1A INPUT FILES & DIRECTORIES ####################### #######################
 
 # basepath to badc/... oaths can be set is testing - use "" for runs on Jasmin
-ceda_basepath <-""
-# ceda_basepath <-"D:"
+#ceda_basepath <-""
+ceda_basepath <-"D:"
 
 # Any plot or print outputs? set to FALSE for Jasmin runs
-outputs<-FALSE
-# outputs<-TRUE
+#outputs<-FALSE
+outputs<-TRUE
 
 # Root directory relative to these data inputs
-dir_root<-"/gws/nopw/j04/uknetzero/mesoclim"
-# dir_root<-"D:/"
+#dir_root<-"/gws/nopw/j04/uknetzero/mesoclim"
+dir_root<-"D:/"
 
 # Filepath to vector file of parcels output by ellicitor app.
-parcels_file<-file.path(dir_root,'mesoclim_inputs','parcels','land_parcels.shp') # elicitor app output file
+#parcels_file<-file.path(dir_root,'mesoclim_inputs','parcels','land_parcels.shp') # elicitor app output file
 parcels_file<-file.path(dir_root,'mesoclim_inputs','parcels','PDNPA_Boundary.shp')
 file.exists(parcels_file)
 
@@ -35,9 +33,13 @@ coast_file<-file.path(dir_root,'mesoclim_inputs','boundaries','CTRY_DEC_2023_UK_
 file.exists(coast_file)
 
 # Filepath to fine resolution DTM of UK (OS Terrain50 -  which has advantages in having a .vrt raster that can be queried to enhance cropping and extraction of relevant area to match aoi etc. Subdirectories within hold actual tiled data.)
-#ukdtm_file<-file.path(dir_root,'mesoclim_inputs','dtm',"GBdem50.vrt") # 50m dtm virtual raster
-ukdtm_file<-file.path(dir_root,'mesoclim_inputs','dtm',"uk_dtm.tif") # 50m dtm virtual raster
+ukdtm_file<-file.path(dir_root,'mesoclim_inputs','dtm',"uk_dtm.tif") # 50m dtm  raster
 file.exists(ukdtm_file)
+
+# Filepath to UKCP18 orography (coarse resolution DTM) file as downloaded from ceda
+# ukcpdtm_file<-file.path(ceda_basepath,"badc/ukcp18/data/land-rcm/ancil/orog","orog_land-rcm_uk_12km_osgb.nc")
+file.exists(ukcpdtm_file)
+
 
 # Directory for outputs - to which individual parcel .csv timeseries files are written.
 dir_out<-file.path(dir_root,'mesoclim_outputs')  # output dir
@@ -59,7 +61,6 @@ collection<-'land-rcm'
 domain<-'uk'
 
 ############## 2 PREPARE INPUTS ####################### #######################
-# TO DO: Prepare climate data for whole decade - more effecicient than opening file for every year
 
 ### Area of interest and elevation data - AOI for downscaling defined by parcel data
 
@@ -75,13 +76,13 @@ aoi<-terra::vect(terra::ext(parcels_v))
 terra::crs(aoi)<-terra::crs(parcels_v)
 
 # Load ukcp coarse resolution dtm for aoi
-dtmc<-get_ukcp_dtm(aoi, basepath=ceda_basepath)
+dtmc<-get_ukcp_dtm(aoi, ukcpdtm_file)
 
 # Create fine resolution dtm of downscaling area  - ensure they fall within extent of loaded dtm & mask to coast_v (sets sea to NA)
 dtmf<-terra::mask(terra::crop(terra::crop(dtmuk,aoi),dtmuk),coast_v)
 
 # Generate medium area and resoilution dtm (for coatal/wind effects)
-dtmm<-get_dtmm(aoi,dtmc,dtmuk,basepath=ceda_basepath)
+dtmm<-get_dtmm(dtmf,dtmc,dtmuk)
 
 # Plot dtmf and overlay parcels
 if(outputs){
@@ -91,19 +92,17 @@ if(outputs){
   plot(parcels_v,add=TRUE)
 }
 
-### Calculate topographical properties
+###### Calculate topographical properties - only worth it if looping over several downscaling calls (eg multiple years)
+
 # Windshelter coef
 wca<-calculate_windcoeffs(dtmc,dtmm,dtmf,zo=2)
 
-# Cold air drainage basins
-t0<-Sys.time()
+# Cold air drainage basins - as above and ONLY if using coastal correction - can take several minutes for large areas
 basins<-basindelin(dtmf, boundary = 2)
-print(Sys.time()-t0)
-#  basins<-basindelin(dtmf, boundary = 2)
 writeRaster(basins,file.path(dir_root,'mesoclim_inputs','dtm',"basins.tif"))
 
 
-### Prepare climate and seas surface data
+####### Prepare climate and seas surface data - prepare for whole time period if up to ~ 10 years
 t0<-now()
 
 # Process climate data from UKCP18 regional files on ceda archive
@@ -126,13 +125,18 @@ if(outputs) climdata<-checkinputs(climdata, tstep = "day")
 
 
 ############## 3 SPATIAL DOWNSCALE ####################### #######################
+# If modelling many years will require looping for each year
 years<-unique(c(year(ftr_sdate):year(ftr_edate)))
+t0<-Sys.time()
+
 for (yr in years){
 # To DO: Add yearly loop - downscale->parcelcalcs
   sdatetime<-as.POSIXlt(paste0(yr,'/01/01'))
   edatetime<-as.POSIXlt(paste0(yr,'/12/31'))
+
+  # If cad = TRUE can take long time to calculate cold air drainage across large areas !!!
   mesoclimate<-spatialdownscale(subset_climdata(climdata,sdatetime,edatetime), subset_climdata(sstdata,sdatetime,edatetime),
-                                dtmf, dtmm, basins = NA, wca=NA, cad = FALSE,
+                                dtmf, dtmm, basins = NA, wca=wca, cad = FALSE,
                                 coastal = TRUE, thgto =2, whgto=2,
                                 rhmin = 20, pksealevel = TRUE, patchsim = TRUE,
                                 terrainshade = FALSE, precipmethod = "Elev", fast = TRUE, noraincut = 0.01)
@@ -140,13 +144,8 @@ for (yr in years){
   # uzf<-winddownscale(climdata$windspeed,climdata$winddir,dtmf,dtmm,dtmc,wca,zi=climdata$windheight_m,zo=2)
   # tminf<-tempdownscale(climdata,sstdata,dtmf,dtmm,basins,uzf,cad=TRUE,coastal=TRUE,'tmin',thgto=2,whgto=2)
   # tmaxf<-tempdownscale(climdata,sstdata,dtmf,dtmm,basins_r,uzf,cad=TRUE,coastal=FALSE,'tmax',thgto=2,whgto=2)
-   mesoclimate<-spatialdownscale(climdata, sstdata,
-                                dtmf, dtmm, basins = basins_r, wca=NA, cad = TRUE,
-                                coastal = TRUE, thgto =2, whgto=2,
-                                rhmin = 20, pksealevel = TRUE, patchsim = TRUE,
-                                terrainshade = FALSE, precipmethod = "Elev", fast = TRUE, noraincut = 0.01)
   downscale_time<-now()-t0
-  print(paste("Time for downscaling =", format(downscale_time)))
+  print(paste("Time for downscaling single year =", format(downscale_time)))
 
   if(outputs){
     climvars<-c('tmin','tmax','relhum','pres','swrad','lwrad','windspeed','winddir','prec')
@@ -157,22 +156,24 @@ for (yr in years){
       plot_q_layers(r,vtext=var)
     }
   }
+  # write_climdata(mesoclimate,file.path(dir_out,'mesoclimate_1yr_test.Rds'))
 
-# write_climdata(mesoclimate,file.path(dir_out,'mesoclimate_1yr_test.Rds'))
+  ###### 4 Calculate and write parcel outputs  with each yearly iteration
 
-
-##############  4 Calculate and write parcel outputs  ####################### #######################
-#Calculate weighted means of climate variables for each parcel and write as .csv files.
-
-# Calculate parcel values
-#t0<-now()
+  # Calculate parcel values
+  t0<-now()
   parcel_list<-create_parcel_list(mesoclimate,parcels_v,id='gid')
   write_parcels(parcel_list, dir_out, overwrite='append')
   parcel_time<-now()-t0
   print(paste("Time for parcel calculation and writing =", format(parcel_time)))
-}
-total_time<-now()-t0
-print(paste("Total time =", format(parcel_time)))
+  total_time<-now()-t0
+  print(paste("Total parcel writing time =", format(parcel_time)))
 
-#  var_sf<-get_parcel_var(mesoclimate,'tmax', parcels_v,id='gid', stat='mean' )
-#  map_parcel_var(var_sf, plotvar='tmax', idvar='gid')
+} # end year loop
+
+
+############## Get a parcel variable and plot a map of it   ####################### #######################
+var_sf<-get_parcel_var(mesoclimate,'tmax', parcels_v,id='gid', stat='mean' )
+map_parcel_var(var_sf, plotvar='tmax', idvar='gid')
+
+
