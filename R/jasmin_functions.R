@@ -157,7 +157,7 @@ get_dtmm<-function(dtmf,dtmc,dtmuk){
 #' \dontrun{
 #' climdata<-addtrees_climdata(aoi,ftr_sdate,ftr_edate,collection='land-rcm',domain='uk',member='01',basepath=ceda_basepath)
 #' }
-addtrees_climdata <- function(aoi,  startdate, enddate,
+addtrees_climdata <- function(aoi, ukcpdtm_file, startdate, enddate,
                               collection=c('land-gcm','land-rcm'),
                               domain=c('uk','eur','global'),
                               member=c('01','02','03','04','05','06','07','08','09','10','11','12','13','14','15',
@@ -195,7 +195,7 @@ addtrees_climdata <- function(aoi,  startdate, enddate,
   decades<-mesoclim::.find_ukcp_decade(collection,startdate,enddate)
 
   # Create coarse-resolution dtm to use as template for cropping etc !!!
-  dtmc<-get_ukcp_dtm(aoi,basepath)
+  dtmc<-get_ukcp_dtm(aoi,ukcpdtm_file)
 
   # Jasmin basepath
   basepath<-file.path(basepath,"badc","ukcp18","data",collection,domain,collres,rcp)

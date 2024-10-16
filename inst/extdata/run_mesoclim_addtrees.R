@@ -74,6 +74,7 @@ parcels_v<-terra::project(terra::vect(parcels_file),dtmuk)
 # Generate local area and dtm and wider extents
 aoi<-terra::vect(terra::ext(parcels_v))
 terra::crs(aoi)<-terra::crs(parcels_v)
+# aoi<-buffer(aoi,c(-10000,-15000))
 
 # Load ukcp coarse resolution dtm for aoi
 dtmc<-get_ukcp_dtm(aoi, ukcpdtm_file)
@@ -95,18 +96,19 @@ if(outputs){
 ###### Calculate topographical properties - only worth it if looping over several downscaling calls (eg multiple years)
 
 # Windshelter coef
+t0<-now()
 wca<-calculate_windcoeffs(dtmc,dtmm,dtmf,zo=2)
 
 # Cold air drainage basins - as above and ONLY if using coastal correction - can take several minutes for large areas
 basins<-basindelin(dtmf, boundary = 2)
-writeRaster(basins,file.path(dir_root,'mesoclim_inputs','dtm',"basins.tif"))
-
+#writeRaster(basins,file.path(dir_root,'mesoclim_inputs','dtm',"basins.tif"))
+print(now()-t0)
 
 ####### Prepare climate and seas surface data - prepare for whole time period if up to ~ 10 years
 t0<-now()
 
-# Process climate data from UKCP18 regional files on ceda archive
-climdata<-addtrees_climdata(aoi,ftr_sdate,ftr_edate,collection='land-rcm',domain='uk',member='01',basepath=ceda_basepath)
+# Process climate data from UKCP18 regional files on ceda archive - PROVIDE dtmc AND aoi as ONE
+climdata<-addtrees_climdata(aoi,ukcpdtm_file,ftr_sdate,ftr_edate,collection='land-rcm',domain='uk',member='01',basepath=ceda_basepath)
 
 # Process sea surface temo data from ceda archive ??CHANGE OUTPUT TO PROJECTION OF DTMC/AOI? COMBINE WITH ABOVE?
 sstdata<-addtrees_sstdata(ftr_sdate,ftr_edate,aoi=climdata$dtm,member='01',basepath=ceda_basepath)
@@ -135,8 +137,9 @@ for (yr in years){
   edatetime<-as.POSIXlt(paste0(yr,'/12/31'))
 
   # If cad = TRUE can take long time to calculate cold air drainage across large areas !!!
+  t0<-now()
   mesoclimate<-spatialdownscale(subset_climdata(climdata,sdatetime,edatetime), subset_climdata(sstdata,sdatetime,edatetime),
-                                dtmf, dtmm, basins = NA, wca=wca, cad = FALSE,
+                                dtmf, dtmm, basins = basins, wca=NA, cad = TRUE,
                                 coastal = TRUE, thgto =2, whgto=2,
                                 rhmin = 20, pksealevel = TRUE, patchsim = TRUE,
                                 terrainshade = FALSE, precipmethod = "Elev", fast = TRUE, noraincut = 0.01)
