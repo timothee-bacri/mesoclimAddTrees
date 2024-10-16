@@ -1,12 +1,13 @@
 ############## Code executable on Jasmin #######################
-# prj <- system.file("proj", package = "terra")[1]
-# Sys.setenv("PROJ_LIB" = prj)
+ prj <- system.file("proj", package = "terra")[1]
+ Sys.setenv("PROJ_LIB" = prj)
 
 ############## LIBRARIES ####################### #######################
 dir_lib<-"/gws/nopw/j04/uknetzero/mesoclim/mesoclim_lib"
 library(terra)
 library(sf)
 library(mesoclim, lib.loc=dir_lib)
+library(mesoclimAddTrees)
 library(lubridate)
 # library(mesoclim)
 # terraOptions(tempdir = "jasmin_location")
@@ -26,6 +27,7 @@ dir_root<-"/gws/nopw/j04/uknetzero/mesoclim"
 
 # Filepath to vector file of parcels output by ellicitor app.
 parcels_file<-file.path(dir_root,'mesoclim_inputs','parcels','land_parcels.shp') # elicitor app output file
+parcels_file<-file.path(dir_root,'mesoclim_inputs','parcels','PDNPA_Boundary.shp')
 file.exists(parcels_file)
 
 # Filepath to coastline boundary polygon (not necessary if dtm already masked)
@@ -34,7 +36,7 @@ file.exists(coast_file)
 
 # Filepath to fine resolution DTM of UK (OS Terrain50 -  which has advantages in having a .vrt raster that can be queried to enhance cropping and extraction of relevant area to match aoi etc. Subdirectories within hold actual tiled data.)
 #ukdtm_file<-file.path(dir_root,'mesoclim_inputs','dtm',"GBdem50.vrt") # 50m dtm virtual raster
-ukdtm_file<-file.path(dir_root,'mesoclim_inputs','dtm',"sw_dtm.tif") # 50m dtm virtual raster
+ukdtm_file<-file.path(dir_root,'mesoclim_inputs','dtm',"uk_dtm.tif") # 50m dtm virtual raster
 file.exists(ukdtm_file)
 
 # Directory for outputs - to which individual parcel .csv timeseries files are written.
@@ -44,10 +46,10 @@ dir.exists(dir_out)
 ############## 1B PARAMETERS ####################### #######################
 
 # Start time for future climate timeseries.
-ftr_sdate<-as.POSIXlt('2021/01/01')
+ftr_sdate<-as.POSIXlt('2022/01/01')
 
 # End time for future climate timeseries.
-ftr_edate<-as.POSIXlt('2025/12/31') # If using shared data folder use max value of as.POSIXlt('2039/12/31')
+ftr_edate<-as.POSIXlt('2022/12/31') # If using shared data folder use max value of as.POSIXlt('2039/12/31')
 
 # Model run of UKCP18rcm to be downscaled.
 modelrun<-c('01')
@@ -70,7 +72,7 @@ parcels_v<-terra::project(terra::vect(parcels_file),dtmuk)
 
 # Generate local area and dtm and wider extents
 aoi<-terra::vect(terra::ext(parcels_v))
-terra::crs(aoi)<-terra::crs(dtmuk)
+terra::crs(aoi)<-terra::crs(parcels_v)
 
 # Load ukcp coarse resolution dtm for aoi
 dtmc<-get_ukcp_dtm(aoi, basepath=ceda_basepath)
@@ -89,6 +91,18 @@ if(outputs){
   plot(parcels_v,add=TRUE)
 }
 
+### Calculate topographical properties
+# Windshelter coef
+wca<-calculate_windcoeffs(dtmc,dtmm,dtmf,zo=2)
+
+# Cold air drainage basins
+t0<-Sys.time()
+basins<-basindelin(dtmf, boundary = 2)
+print(Sys.time()-t0)
+#  basins<-basindelin(dtmf, boundary = 2)
+writeRaster(basins,file.path(dir_root,'mesoclim_inputs','dtm',"basins.tif"))
+
+
 ### Prepare climate and seas surface data
 t0<-now()
 
@@ -100,7 +114,6 @@ sstdata<-addtrees_sstdata(ftr_sdate,ftr_edate,aoi=climdata$dtm,member='01',basep
 
 dataprep_time<-now()-t0
 print(paste("Time for preparing data =", format(dataprep_time)))
-
 
 if(outputs){
   plot(project(sstdata[[1]],crs(dtmc)))
@@ -119,7 +132,16 @@ for (yr in years){
   sdatetime<-as.POSIXlt(paste0(yr,'/01/01'))
   edatetime<-as.POSIXlt(paste0(yr,'/12/31'))
   mesoclimate<-spatialdownscale(subset_climdata(climdata,sdatetime,edatetime), subset_climdata(sstdata,sdatetime,edatetime),
-                                dtmf, dtmm, basins = NA, cad = TRUE,
+                                dtmf, dtmm, basins = NA, wca=NA, cad = FALSE,
+                                coastal = TRUE, thgto =2, whgto=2,
+                                rhmin = 20, pksealevel = TRUE, patchsim = TRUE,
+                                terrainshade = FALSE, precipmethod = "Elev", fast = TRUE, noraincut = 0.01)
+
+  # uzf<-winddownscale(climdata$windspeed,climdata$winddir,dtmf,dtmm,dtmc,wca,zi=climdata$windheight_m,zo=2)
+  # tminf<-tempdownscale(climdata,sstdata,dtmf,dtmm,basins,uzf,cad=TRUE,coastal=TRUE,'tmin',thgto=2,whgto=2)
+  # tmaxf<-tempdownscale(climdata,sstdata,dtmf,dtmm,basins_r,uzf,cad=TRUE,coastal=FALSE,'tmax',thgto=2,whgto=2)
+   mesoclimate<-spatialdownscale(climdata, sstdata,
+                                dtmf, dtmm, basins = basins_r, wca=NA, cad = TRUE,
                                 coastal = TRUE, thgto =2, whgto=2,
                                 rhmin = 20, pksealevel = TRUE, patchsim = TRUE,
                                 terrainshade = FALSE, precipmethod = "Elev", fast = TRUE, noraincut = 0.01)

@@ -1,6 +1,81 @@
-############## Code executable on Jasmin #######################
-# prj <- system.file("proj", package = "terra")[1]
-# Sys.setenv("PROJ_LIB" = prj)
+#!/usr/bin/env Rscript
+args = commandArgs(trailingOnly=TRUE)
+
+############## Check parameters passed via Rscript line command ######
+# PARAMETERS
+# parcel_file location
+# output directory
+# start year
+# end year
+if (length(args)==0) {
+  stop("At least one argument must be supplied (parcel file)", call.=FALSE)
+} else if (length(args)>4) {
+  stop("Up to four arguments are required (parcel file, output dir, starttime, endtime)", call.=FALSE) }
+
+
+
+
+
+if(!file.exists(args[1])) stop("Input file provided does NOT exist!!!")
+
+maxyear<-2080
+minyear<-1980
+out_default<-"/gws/nopw/j04/uknetzero/mesoclim/mesoclim_outputs"
+
+if (length(args)<5) {
+  warning("Using default end times!!")
+  args[5] = 2080
+}
+if (length(args)<4) {
+  warning("Using default start and end times!!")
+  args[4] = 2024
+}
+if (length(args)<3){
+  warning("Using default UKCP modelrun (01)!!")
+  args[3] = "01"
+
+}
+if (length(args)<2) {
+  warning("Using default output directory!!")
+  args[2] = out_default
+}
+
+if (class(args[4])[1]!="numeric") stop("Invalid 4th parameter!!")
+if (class(args[5])[1]!="numeric") stop("Invalid 5th parameter!!")
+
+if(!dir.exists(args[2])){
+  warning(paste("Output directory provided does NOT exist, using default dir",out_default))
+  args[2]<-out_default
+}
+if(args[5]>maxyear){
+  warning(paste("End year too high - changing to",maxyear))
+  args[5]<-maxyr
+}
+if(args[4]<minyear){
+  warning(paste("Start year too low - changing to",minyear))
+  args[4]<-minyr
+}
+
+############## 1A PARAMETERS ####################### #######################
+parcels_file<-args[1]
+
+dir_out<-args[2]
+
+# Model run of UKCP18rcm to be downscaled.
+#modelrun<-c('01')
+modelrun<-args[3]
+
+# Start time for future climate timeseries.
+ftr_sdate<-as.POSIXlt(paste0(args[4],'2021/01/01'))
+
+# End time for future climate timeseries.
+ftr_edate<-as.POSIXlt(paste0(args[5],'/12/31')) # If using shared data folder use max value of as.POSIXlt('2039/12/31')
+
+
+# These are fixed for ADDTREES analyses - shouldn't need to change
+collection<-'land-rcm'
+domain<-'uk'
+
 
 ############## LIBRARIES ####################### #######################
 dir_lib<-"/gws/nopw/j04/uknetzero/mesoclim/mesoclim_lib"
@@ -9,8 +84,9 @@ library(sf)
 library(mesoclim, lib.loc=dir_lib)
 library(lubridate)
 library(mesoclimAddTrees, lib.loc=dir_lib)
-# library(mesoclim)
+
 terraOptions(tempdir = "/gws/nopw/j04/uknetzero/mesoclim/terra_storage")
+
 ############## 1A INPUT FILES & DIRECTORIES ####################### #######################
 
 # basepath to badc/... oaths can be set is testing - use "" for runs on Jasmin
@@ -43,23 +119,9 @@ dir_out<-file.path(dir_root,'mesoclim_outputs')  # output dir
 dir.exists(dir_out)
 
 # Remove any existing parcel files in dir_out
-pfiles<-list.files(dir_out,full.names=TRUE, pattern="parcel")
-file.remove(pfiles)
+#pfiles<-list.files(dir_out,full.names=TRUE, pattern="parcel")
+#file.remove(pfiles)
 
-############## 1B PARAMETERS ####################### #######################
-
-# Start time for future climate timeseries.
-ftr_sdate<-as.POSIXlt('2021/01/01')
-
-# End time for future climate timeseries.
-ftr_edate<-as.POSIXlt('2029/12/31') # If using shared data folder use max value of as.POSIXlt('2039/12/31')
-
-# Model run of UKCP18rcm to be downscaled.
-modelrun<-c('01')
-
-# These are fixed for ADDTREES analyses - shouldn't need to change
-collection<-'land-rcm'
-domain<-'uk'
 
 ############## 2 PREPARE INPUTS ####################### #######################
 # TO DO: Prepare climate data for whole decade - more effecicient than opening file for every year

@@ -262,10 +262,11 @@ biascorrectukcpall<-function(pathtoera,pathtoukcp18,pathtoukcpdecade,pathout,dec
 #' @importFrom terra subset
 subset_climdata<-function(climdata,sdatetime,edatetime){
   if (class(climdata)[1]=='SpatRaster'){
-    sel<-which(time(climdata)>=sdatetime %m-% months(1) & time(climdata)<=edatetime %m+% months(1))
-    sel<-ifelse(sel<1,1,sel)
-    sel<-ifelse(sel>nlyr(climdata),nlyr(climdata),sel)
-    newdata <- subset(climdata,sel)
+    if(all(any(!is.na(values(climdata))))){
+      sel<-which(time(climdata)>=sdatetime %m-% months(1) & time(climdata)<=edatetime %m+% months(1))
+      sel<-ifelse(sel<1,1,sel)
+      sel<-ifelse(sel>nlyr(climdata),nlyr(climdata),sel)
+      newdata <- subset(climdata,sel) } else {newdata<-NA} # return NA if no non-NA sea temp cells
   }
 
   if (class(climdata)[1]=='list'){
