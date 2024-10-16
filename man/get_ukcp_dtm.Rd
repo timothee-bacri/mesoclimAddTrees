@@ -4,7 +4,7 @@
 \alias{get_ukcp_dtm}
 \title{Get ukcp18 RCM 12km DTM from ceda archive}
 \usage{
-get_ukcp_dtm(aoi, basepath = "")
+get_ukcp_dtm(aoi, ukcpdtm_file)
 }
 \arguments{
 \item{aoi}{\itemize{

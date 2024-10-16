@@ -1,25 +1,23 @@
 #!/usr/bin/env Rscript
 args = commandArgs(trailingOnly=TRUE)
 
-############## Check parameters passed via Rscript line command ######
-# PARAMETERS
-# parcel_file location
-# output directory
-# start year
-# end year
+############## Check User PARAMETERS passed via Rscript line command ######
+# 1 parcel_file location
+# 2 output directory
+# 3 model memeber number eg "01"
+# 4 start year
+# 5 end year
+
 if (length(args)==0) {
   stop("At least one argument must be supplied (parcel file)", call.=FALSE)
 } else if (length(args)>4) {
   stop("Up to four arguments are required (parcel file, output dir, starttime, endtime)", call.=FALSE) }
 
 
-
-
-
 if(!file.exists(args[1])) stop("Input file provided does NOT exist!!!")
 
 maxyear<-2080
-minyear<-1980
+minyear<-1981
 out_default<-"/gws/nopw/j04/uknetzero/mesoclim/mesoclim_outputs"
 
 if (length(args)<5) {
@@ -56,20 +54,12 @@ if(args[4]<minyear){
   args[4]<-minyr
 }
 
-############## 1A PARAMETERS ####################### #######################
+############## Assign PARAMETERS and define others ####################### #######################
 parcels_file<-args[1]
-
 dir_out<-args[2]
-
-# Model run of UKCP18rcm to be downscaled.
-#modelrun<-c('01')
 modelrun<-args[3]
-
-# Start time for future climate timeseries.
 ftr_sdate<-as.POSIXlt(paste0(args[4],'2021/01/01'))
-
-# End time for future climate timeseries.
-ftr_edate<-as.POSIXlt(paste0(args[5],'/12/31')) # If using shared data folder use max value of as.POSIXlt('2039/12/31')
+ftr_edate<-as.POSIXlt(paste0(args[5],'/12/31'))
 
 
 # These are fixed for ADDTREES analyses - shouldn't need to change
@@ -91,32 +81,29 @@ terraOptions(tempdir = "/gws/nopw/j04/uknetzero/mesoclim/terra_storage")
 
 # basepath to badc/... oaths can be set is testing - use "" for runs on Jasmin
 ceda_basepath <-""
-# ceda_basepath <-"D:"
 
 # Any plot or print outputs? set to FALSE for Jasmin runs
 outputs<-FALSE
-# outputs<-TRUE
 
 # Root directory relative to these data inputs
 dir_root<-"/gws/nopw/j04/uknetzero/mesoclim"
-# dir_root<-"D:/"
 
 # Filepath to vector file of parcels output by ellicitor app.
 parcels_file<-file.path(dir_root,'mesoclim_inputs','parcels','land_parcels.shp') # elicitor app output file
-file.exists(parcels_file)
+if(!file.exists(parcels_file)) stop("Cannot find parcels input file!!")
 
 # Filepath to coastline boundary polygon (not necessary if dtm already masked)
 coast_file<-file.path(dir_root,'mesoclim_inputs','boundaries','CTRY_DEC_2023_UK_BGC.shp') # MHW line generalised to 20m
-file.exists(coast_file)
+if(!file.exists(coast_file)) stop("Cannot find coastal mask file for the UK!!")
 
 # Filepath to fine resolution DTM of UK (OS Terrain50 -  which has advantages in having a .vrt raster that can be queried to enhance cropping and extraction of relevant area to match aoi etc. Subdirectories within hold actual tiled data.)
 #ukdtm_file<-file.path(dir_root,'mesoclim_inputs','dtm',"GBdem50.vrt") # 50m dtm virtual raster
 ukdtm_file<-file.path(dir_root,'mesoclim_inputs','dtm',"sw_dtm.tif") # 50m dtm virtual raster
-file.exists(ukdtm_file)
+if(!file.exists(ukdtm_file)) stop("Cannot find DTM file for the UK!!")
 
 # Directory for outputs - to which individual parcel .csv timeseries files are written.
 dir_out<-file.path(dir_root,'mesoclim_outputs')  # output dir
-dir.exists(dir_out)
+if(!dir.exists(dir_out)) stop("Cannot find output directory!!")
 
 # Remove any existing parcel files in dir_out
 #pfiles<-list.files(dir_out,full.names=TRUE, pattern="parcel")

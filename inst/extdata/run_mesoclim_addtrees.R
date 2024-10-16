@@ -21,7 +21,7 @@ outputs<-TRUE
 
 # Root directory relative to these data inputs
 #dir_root<-"/gws/nopw/j04/uknetzero/mesoclim"
-dir_root<-"D:/"
+dir_root<-"D:"
 
 # Filepath to vector file of parcels output by ellicitor app.
 #parcels_file<-file.path(dir_root,'mesoclim_inputs','parcels','land_parcels.shp') # elicitor app output file
@@ -37,7 +37,7 @@ ukdtm_file<-file.path(dir_root,'mesoclim_inputs','dtm',"uk_dtm.tif") # 50m dtm  
 file.exists(ukdtm_file)
 
 # Filepath to UKCP18 orography (coarse resolution DTM) file as downloaded from ceda
-# ukcpdtm_file<-file.path(ceda_basepath,"badc/ukcp18/data/land-rcm/ancil/orog","orog_land-rcm_uk_12km_osgb.nc")
+ukcpdtm_file<-file.path(ceda_basepath,"badc/ukcp18/data/land-rcm/ancil/orog","orog_land-rcm_uk_12km_osgb.nc")
 file.exists(ukcpdtm_file)
 
 
@@ -141,9 +141,6 @@ for (yr in years){
                                 rhmin = 20, pksealevel = TRUE, patchsim = TRUE,
                                 terrainshade = FALSE, precipmethod = "Elev", fast = TRUE, noraincut = 0.01)
 
-  # uzf<-winddownscale(climdata$windspeed,climdata$winddir,dtmf,dtmm,dtmc,wca,zi=climdata$windheight_m,zo=2)
-  # tminf<-tempdownscale(climdata,sstdata,dtmf,dtmm,basins,uzf,cad=TRUE,coastal=TRUE,'tmin',thgto=2,whgto=2)
-  # tmaxf<-tempdownscale(climdata,sstdata,dtmf,dtmm,basins_r,uzf,cad=TRUE,coastal=FALSE,'tmax',thgto=2,whgto=2)
   downscale_time<-now()-t0
   print(paste("Time for downscaling single year =", format(downscale_time)))
 

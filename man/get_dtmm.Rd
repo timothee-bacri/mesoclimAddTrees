@@ -4,19 +4,19 @@
 \alias{get_dtmm}
 \title{Calculate medium resolution dtm from aoi, coarse (ukcp) dtmc and uk wide fine scale dtmuk}
 \usage{
-get_dtmm(aoi, dtmc, dtmuk, basepath = "")
+get_dtmm(dtmf, dtmc, dtmuk)
 }
 \arguments{
-\item{aoi}{\itemize{
-\item area of interest spatvector, raster or sf
-}}
-
 \item{dtmc}{\itemize{
 \item coarse dtm spatraster
 }}
 
 \item{dtmuk}{\itemize{
 \item uk wide fine resolution dtm spatraster
+}}
+
+\item{aoi}{\itemize{
+\item area of interest spatvector, raster or sf
 }}
 
 \item{basepath}{\itemize{
