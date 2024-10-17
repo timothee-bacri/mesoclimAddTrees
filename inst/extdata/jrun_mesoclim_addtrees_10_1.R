@@ -10,14 +10,14 @@ args = commandArgs(trailingOnly=TRUE)
 
 if (length(args)==0) {
   stop("At least one argument must be supplied (parcel file)", call.=FALSE)
-} else if (length(args)>4) {
+} else if (length(args)>5) {
   stop("Up to four arguments are required (parcel file, output dir, starttime, endtime)", call.=FALSE) }
 
 
 if(!file.exists(args[1])) stop("Input file provided does NOT exist!!!")
 
-maxyear<-2080
-minyear<-1981
+maxyear<-"2080"
+minyear<-"1981"
 out_default<-"/gws/nopw/j04/uknetzero/mesoclim/mesoclim_outputs"
 
 if (length(args)<5) {
@@ -38,8 +38,8 @@ if (length(args)<2) {
   args[2] = out_default
 }
 
-if (class(args[4])[1]!="numeric") stop("Invalid 4th parameter!!")
-if (class(args[5])[1]!="numeric") stop("Invalid 5th parameter!!")
+#if (class(args[4])[1]!="numeric") stop("Invalid 4th parameter!!")
+#if (class(args[5])[1]!="numeric") stop("Invalid 5th parameter!!")
 
 if(!dir.exists(args[2])){
   warning(paste("Output directory provided does NOT exist, using default dir",out_default))
@@ -58,9 +58,14 @@ if(args[4]<minyear){
 parcels_file<-args[1]
 dir_out<-args[2]
 modelrun<-args[3]
-ftr_sdate<-as.POSIXlt(paste0(args[4],'2021/01/01'))
-ftr_edate<-as.POSIXlt(paste0(args[5],'/12/31'))
+ftr_sdate<-as.POSIXlt(paste0(args[4],'/01/01'),tz="UTC")
+ftr_edate<-as.POSIXlt(paste0(args[5],'/12/31'),tz="UTC")
 
+print(paste("Parcels input file:",parcels_file))
+print(paste("Output directory:",dir_out))
+print(paste("Model run:",modelrun))
+print(paste("Start date:",ftr_sdate))
+print(paste("End date:",ftr_edate))
 
 # These are fixed for ADDTREES analyses - shouldn't need to change
 collection<-'land-rcm'
@@ -71,9 +76,11 @@ domain<-'uk'
 dir_lib<-"/gws/nopw/j04/uknetzero/mesoclim/mesoclim_lib"
 library(terra)
 library(sf)
-library(mesoclim, lib.loc=dir_lib)
 library(lubridate)
-library(mesoclimAddTrees, lib.loc=dir_lib)
+library(mesoclim)
+library(mesoclimAddTrees)
+#library(mesoclim, lib.loc=dir_lib)
+#library(mesoclimAddTrees, lib.loc=dir_lib)
 
 terraOptions(tempdir = "/gws/nopw/j04/uknetzero/mesoclim/terra_storage")
 
@@ -81,17 +88,18 @@ terraOptions(tempdir = "/gws/nopw/j04/uknetzero/mesoclim/terra_storage")
 
 # basepath to badc/... oaths can be set is testing - use "" for runs on Jasmin
 ceda_basepath <-""
-#ceda_basepath <-"D:"
+ceda_basepath <-"D:"
 
 # Any plot or print outputs? set to FALSE for Jasmin runs
 outputs<-FALSE
 
 # Root directory relative to these data inputs
 dir_root<-"/gws/nopw/j04/uknetzero/mesoclim"
-#dir_root<-"D:"
+dir_root<-"D:"
 
 # Filepath to vector file of parcels output by ellicitor app.
-parcels_file<-file.path(dir_root,'mesoclim_inputs','parcels','land_parcels.shp') # elicitor app output file
+#parcels_file<-file.path(dir_root,'mesoclim_inputs','parcels','land_parcels.shp') # elicitor app lizard area file
+#parcels_file<-file.path(dir_root,'mesoclim_inputs','parcels','exmoor_parcels.shp') # ceh exmoor parcels
 if(!file.exists(parcels_file)) stop("Cannot find parcels input file!!")
 
 # Filepath to coarse res DTM matching UKCP data
@@ -107,7 +115,7 @@ coast_file<-file.path(dir_root,'mesoclim_inputs','boundaries','CTRY_DEC_2023_UK_
 if(!file.exists(coast_file)) stop("Cannot find coastal mask file for the UK!!")
 
 # Directory for outputs - to which individual parcel .csv timeseries files are written.
-dir_out<-file.path(dir_root,'mesoclim_outputs')  # output dir
+#dir_out<-file.path(dir_root,'mesoclim_outputs')  # output dir
 if(!dir.exists(dir_out)) stop("Cannot find output directory!!")
 
 # Remove any existing parcel files in dir_out
@@ -138,7 +146,7 @@ dtmc<-get_ukcp_dtm(aoi, ukcpdtm_file)
 dtmf<-terra::mask(terra::crop(terra::crop(dtmuk,aoi),dtmuk),coast_v)
 
 # Generate medium area and resoilution dtm (for coatal/wind effects)
-dtmm<-get_dtmm(aoi,dtmc,dtmuk,basepath=ceda_basepath)
+dtmm<-get_dtmm(aoi,dtmc,dtmuk)
 
 # Plot dtmf and overlay parcels
 if(outputs){
@@ -214,7 +222,7 @@ for (yr in years){
   print(paste("Time for parcel calculation and writing =", format(parcel_time)))
 }
 total_time<-now()-t0
-print(paste("Total time =", format(parcel_time)))
+print(paste("Total time for completion =", format(parcel_time)))
 
 #  var_sf<-get_parcel_var(mesoclimate,'tmax', parcels_v,id='gid', stat='mean' )
 #  map_parcel_var(var_sf, plotvar='tmax', idvar='gid')

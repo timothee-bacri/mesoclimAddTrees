@@ -181,7 +181,7 @@ addtrees_climdata <- function(dtmc, startdate, enddate,
   ukcp_units<-match.arg(ukcp_units,several.ok=TRUE)
   output_units<-match.arg(output_units,several.ok=TRUE)
   if(class(startdate)[1]!="POSIXlt" | class(enddate)[1]!="POSIXlt") stop("Date parameters NOT POSIXlt class!!")
-  if(!class(aoi)[1] %in% c("SpatRaster") ) stop("dtmc parameter is NOT a SpatRaster!!!")
+  if(!class(dtmc)[1] %in% c("SpatRaster") ) stop("dtmc parameter is NOT a SpatRaster!!!")
 
   # Check member in chosen collection
   member<-match.arg(member)
