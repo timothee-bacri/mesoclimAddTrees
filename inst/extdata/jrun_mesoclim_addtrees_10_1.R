@@ -81,25 +81,30 @@ terraOptions(tempdir = "/gws/nopw/j04/uknetzero/mesoclim/terra_storage")
 
 # basepath to badc/... oaths can be set is testing - use "" for runs on Jasmin
 ceda_basepath <-""
+#ceda_basepath <-"D:"
 
 # Any plot or print outputs? set to FALSE for Jasmin runs
 outputs<-FALSE
 
 # Root directory relative to these data inputs
 dir_root<-"/gws/nopw/j04/uknetzero/mesoclim"
+#dir_root<-"D:"
 
 # Filepath to vector file of parcels output by ellicitor app.
 parcels_file<-file.path(dir_root,'mesoclim_inputs','parcels','land_parcels.shp') # elicitor app output file
 if(!file.exists(parcels_file)) stop("Cannot find parcels input file!!")
 
-# Filepath to coastline boundary polygon (not necessary if dtm already masked)
-coast_file<-file.path(dir_root,'mesoclim_inputs','boundaries','CTRY_DEC_2023_UK_BGC.shp') # MHW line generalised to 20m
-if(!file.exists(coast_file)) stop("Cannot find coastal mask file for the UK!!")
+# Filepath to coarse res DTM matching UKCP data
+ukcpdtm_file<-file.path(ceda_basepath,"badc","ukcp18","data","land-rcm","ancil","orog","orog_land-rcm_uk_12km_osgb.nc")
 
 # Filepath to fine resolution DTM of UK (OS Terrain50 -  which has advantages in having a .vrt raster that can be queried to enhance cropping and extraction of relevant area to match aoi etc. Subdirectories within hold actual tiled data.)
 #ukdtm_file<-file.path(dir_root,'mesoclim_inputs','dtm',"GBdem50.vrt") # 50m dtm virtual raster
 ukdtm_file<-file.path(dir_root,'mesoclim_inputs','dtm',"sw_dtm.tif") # 50m dtm virtual raster
 if(!file.exists(ukdtm_file)) stop("Cannot find DTM file for the UK!!")
+
+# Filepath to coastline boundary polygon (not necessary if dtm already masked)
+coast_file<-file.path(dir_root,'mesoclim_inputs','boundaries','CTRY_DEC_2023_UK_BGC.shp') # MHW line generalised to 20m
+if(!file.exists(coast_file)) stop("Cannot find coastal mask file for the UK!!")
 
 # Directory for outputs - to which individual parcel .csv timeseries files are written.
 dir_out<-file.path(dir_root,'mesoclim_outputs')  # output dir
@@ -127,7 +132,7 @@ aoi<-terra::vect(terra::ext(parcels_v))
 terra::crs(aoi)<-terra::crs(dtmuk)
 
 # Load ukcp coarse resolution dtm for aoi
-dtmc<-get_ukcp_dtm(aoi, basepath=ceda_basepath)
+dtmc<-get_ukcp_dtm(aoi, ukcpdtm_file)
 
 # Create fine resolution dtm of downscaling area  - ensure they fall within extent of loaded dtm & mask to coast_v (sets sea to NA)
 dtmf<-terra::mask(terra::crop(terra::crop(dtmuk,aoi),dtmuk),coast_v)
@@ -147,7 +152,7 @@ if(outputs){
 t0<-now()
 
 # Process climate data from UKCP18 regional files on ceda archive
-climdata<-addtrees_climdata(aoi,ftr_sdate,ftr_edate,collection='land-rcm',domain='uk',member='01',basepath=ceda_basepath)
+climdata<-addtrees_climdata(dtmc,ftr_sdate,ftr_edate,collection='land-rcm',domain='uk',member='01',basepath=ceda_basepath)
 
 # Process sea surface temo data from ceda archive ??CHANGE OUTPUT TO PROJECTION OF DTMC/AOI? COMBINE WITH ABOVE?
 sstdata<-addtrees_sstdata(ftr_sdate,ftr_edate,aoi=climdata$dtm,member='01',basepath=ceda_basepath)
@@ -167,13 +172,18 @@ if(outputs) climdata<-checkinputs(climdata, tstep = "day")
 
 
 ############## 3 SPATIAL DOWNSCALE ####################### #######################
+## Prepare wind coefficients and drainage basins that are constant across time
+wca<-calculate_windcoeffs(dtmc,dtmm,dtmf,zo=2)
+basins<-basindelin(dtmf, boundary = 2)
+
+## Yearly downscaling
 years<-unique(c(year(ftr_sdate):year(ftr_edate)))
 for (yr in years){
 # To DO: Add yearly loop - downscale->parcelcalcs
   sdatetime<-as.POSIXlt(paste0(yr,'/01/01'))
   edatetime<-as.POSIXlt(paste0(yr,'/12/31'))
   mesoclimate<-spatialdownscale(subset_climdata(climdata,sdatetime,edatetime), subset_climdata(sstdata,sdatetime,edatetime),
-                                dtmf, dtmm, basins = NA, cad = TRUE,
+                                dtmf, dtmm, basins = basins, wca=wca, cad = TRUE,
                                 coastal = TRUE, thgto =2, whgto=2,
                                 rhmin = 20, pksealevel = TRUE, patchsim = TRUE,
                                 terrainshade = FALSE, precipmethod = "Elev", fast = TRUE, noraincut = 0.01)

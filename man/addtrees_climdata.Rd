@@ -5,7 +5,7 @@
 \title{Source UKCP files from ceda archive and preprocess}
 \usage{
 addtrees_climdata(
-  aoi,
+  dtmc,
   startdate,
   enddate,
   collection = c("land-gcm", "land-rcm"),
@@ -27,9 +27,7 @@ addtrees_climdata(
 )
 }
 \arguments{
-\item{aoi}{\itemize{
-\item area of interest as spatvector, raster or sf
-}}
+\item{dtmc}{dtm at resolution of UKCP data (12km) covering area to be preprocessed, as returned by \code{get_ukcp_dtm}}
 
 \item{startdate}{POSIXlt class defining start date of required timeseries}
 

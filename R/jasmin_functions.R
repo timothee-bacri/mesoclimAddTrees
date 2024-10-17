@@ -60,7 +60,7 @@ addtrees_hadukdata<-function(startdate, enddate, dtmc, filepath="/badc/ukmo-hado
 #' @title Get ukcp18 RCM 12km DTM from ceda archive
 #'
 #' @param aoi - used to cut dtm
-#' @param basepath - "" when using on jasmin
+#' @param ukcpdtm_file - full path to UKCP18RCM orography/dtm file
 #'
 #' @return spatrast object cropped to extended aoi
 #' @export
@@ -69,15 +69,18 @@ addtrees_hadukdata<-function(startdate, enddate, dtmc, filepath="/badc/ukmo-hado
 #' @keywords jasmin
 #' @examples
 #' \dontrun{
-#' dtmc<-get_ukcp_dtm(aoi, basepath=ceda_basepath)
+#' dtmc<-get_ukcp_dtm(aoi, ukcpdtm_file=orog_filepath)
 #' }
 get_ukcp_dtm<-function(aoi, ukcpdtm_file){
+  if(!class(aoi)[1] %in% c("SpatRaster","SpatVector","sf") ) stop("aoi parameter is NOT a SpatRaster, SpatVector or sf object!!!")
+  if(class(aoi)[1] =="sf") aoi<-terra::vect(aoi)
+
   # Load orography
   #fname<-"orog_land-rcm_uk_12km_osgb.nc"
   #path<-file.path(basepath,"badc/ukcp18/data/land-rcm/ancil/orog")
   dtmc<-terra::rast(ukcpdtm_file)
-
   #terra::crs(dtmc)<-'epsg:27700'
+
   # Convert aoi to dtmc projection and if a vector convert to bounding box vect
   aoiproj<-terra::project(aoi,terra::crs(dtmc))
   if(class(aoi)[1]=='SpatVector'){
@@ -116,7 +119,7 @@ get_dtmm<-function(dtmf,dtmc,dtmuk){
 
 #' @title Source UKCP files from ceda archive and preprocess
 #'
-#' @param aoi - area of interest as spatvector, raster or sf
+#' @param dtmc dtm at resolution of UKCP data (12km) covering area to be preprocessed, as returned by `get_ukcp_dtm`
 #' @param startdate POSIXlt class defining start date of required timeseries
 #' @param enddate POSIXlt class defining end date of required timeseries
 #' @param collection text string defining UKCP18 collection, either 'land-gcm' or 'land-rcm'
@@ -157,7 +160,7 @@ get_dtmm<-function(dtmf,dtmc,dtmuk){
 #' \dontrun{
 #' climdata<-addtrees_climdata(aoi,ftr_sdate,ftr_edate,collection='land-rcm',domain='uk',member='01',basepath=ceda_basepath)
 #' }
-addtrees_climdata <- function(aoi, ukcpdtm_file, startdate, enddate,
+addtrees_climdata <- function(dtmc, startdate, enddate,
                               collection=c('land-gcm','land-rcm'),
                               domain=c('uk','eur','global'),
                               member=c('01','02','03','04','05','06','07','08','09','10','11','12','13','14','15',
@@ -178,9 +181,7 @@ addtrees_climdata <- function(aoi, ukcpdtm_file, startdate, enddate,
   ukcp_units<-match.arg(ukcp_units,several.ok=TRUE)
   output_units<-match.arg(output_units,several.ok=TRUE)
   if(class(startdate)[1]!="POSIXlt" | class(enddate)[1]!="POSIXlt") stop("Date parameters NOT POSIXlt class!!")
-  if(!class(aoi)[1] %in% c("SpatRaster","SpatVector","sf") ) stop("aoi parameter is NOT a SpatRaster, SpatVector or sf object!!!")
-  if(class(aoi)[1] =="sf") aoi<-terra::vect(aoi)
-
+  if(!class(aoi)[1] %in% c("SpatRaster") ) stop("dtmc parameter is NOT a SpatRaster!!!")
 
   # Check member in chosen collection
   member<-match.arg(member)
@@ -193,9 +194,6 @@ addtrees_climdata <- function(aoi, ukcpdtm_file, startdate, enddate,
 
   # Identify which decades are required
   decades<-mesoclim::.find_ukcp_decade(collection,startdate,enddate)
-
-  # Create coarse-resolution dtm to use as template for cropping etc !!!
-  dtmc<-get_ukcp_dtm(aoi,ukcpdtm_file)
 
   # Jasmin basepath
   basepath<-file.path(basepath,"badc","ukcp18","data",collection,domain,collres,rcp)

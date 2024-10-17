@@ -11,8 +11,8 @@ get_ukcp_dtm(aoi, ukcpdtm_file)
 \item used to cut dtm
 }}
 
-\item{basepath}{\itemize{
-\item "" when using on jasmin
+\item{ukcpdtm_file}{\itemize{
+\item full path to UKCP18RCM orography/dtm file
 }}
 }
 \value{
@@ -23,7 +23,7 @@ Get ukcp18 RCM 12km DTM from ceda archive
 }
 \examples{
 \dontrun{
-dtmc<-get_ukcp_dtm(aoi, basepath=ceda_basepath)
+dtmc<-get_ukcp_dtm(aoi, ukcpdtm_file=orog_filepath)
 }
 }
 \keyword{jasmin}

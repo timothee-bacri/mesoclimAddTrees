@@ -1,4 +1,4 @@
-############## Code executable on Jasmin #######################
+############## Code executable on LOCAL machine with downloaded inputs #######################
 # prj <- system.file("proj", package = "terra")[1]
 # Sys.setenv("PROJ_LIB" = prj)
 
@@ -11,16 +11,11 @@ library(mesoclim)
 
 ############## 1A INPUT FILES & DIRECTORIES ####################### #######################
 
-# basepath to badc/... oaths can be set is testing - use "" for runs on Jasmin
-#ceda_basepath <-""
-ceda_basepath <-"D:"
-
 # Any plot or print outputs? set to FALSE for Jasmin runs
 #outputs<-FALSE
 outputs<-TRUE
 
-# Root directory relative to these data inputs
-#dir_root<-"/gws/nopw/j04/uknetzero/mesoclim"
+# Root directory - other dirs relative to this one
 dir_root<-"D:"
 
 # Filepath to vector file of parcels output by ellicitor app.
@@ -37,9 +32,8 @@ ukdtm_file<-file.path(dir_root,'mesoclim_inputs','dtm',"uk_dtm.tif") # 50m dtm  
 file.exists(ukdtm_file)
 
 # Filepath to UKCP18 orography (coarse resolution DTM) file as downloaded from ceda
-ukcpdtm_file<-file.path(ceda_basepath,"badc/ukcp18/data/land-rcm/ancil/orog","orog_land-rcm_uk_12km_osgb.nc")
+ukcpdtm_file<-file.path(dir_root,"mesoclim_inputs","ukcp18rcm","orog_land-rcm_uk_12km_osgb.nc")
 file.exists(ukcpdtm_file)
-
 
 # Directory for outputs - to which individual parcel .csv timeseries files are written.
 dir_out<-file.path(dir_root,'mesoclim_outputs')  # output dir
@@ -108,7 +102,7 @@ print(now()-t0)
 t0<-now()
 
 # Process climate data from UKCP18 regional files on ceda archive - PROVIDE dtmc AND aoi as ONE
-climdata<-addtrees_climdata(aoi,ukcpdtm_file,ftr_sdate,ftr_edate,collection='land-rcm',domain='uk',member='01',basepath=ceda_basepath)
+climdata<-addtrees_climdata(dtmc,ftr_sdate,ftr_edate,collection='land-rcm',domain='uk',member='01',basepath=ceda_basepath)
 
 # Process sea surface temo data from ceda archive ??CHANGE OUTPUT TO PROJECTION OF DTMC/AOI? COMBINE WITH ABOVE?
 sstdata<-addtrees_sstdata(ftr_sdate,ftr_edate,aoi=climdata$dtm,member='01',basepath=ceda_basepath)
@@ -129,8 +123,7 @@ if(outputs) climdata<-checkinputs(climdata, tstep = "day")
 ############## 3 SPATIAL DOWNSCALE ####################### #######################
 # If modelling many years will require looping for each year
 years<-unique(c(year(ftr_sdate):year(ftr_edate)))
-t0<-Sys.time()
-
+#yr<-years
 for (yr in years){
 # To DO: Add yearly loop - downscale->parcelcalcs
   sdatetime<-as.POSIXlt(paste0(yr,'/01/01'))
