@@ -4,19 +4,28 @@
 #' @param climdata - list of SpatRasters of downscaled mesoclimate variables as output by `spatialdownscale`
 #' @param parcels - sf or vect describing polygons for which climate data is required
 #' @param id - string of variable name in parcels corresponding to parcel identification field
+#' @param input_names - string of variable names held in climdata to be calculated
+#' @param output_names - string of variable names for outputting
+#' @details
+#' To write specific rather than relative humidity specify `relhum` among input_names and `spchum` in output_variables
 #'
 #' @return list of dataframes of climate variable timeseries by parcel.
 #' @export
 #' @importFrom sf st_as_sf
 #' @importFrom exactextractr exact_extract
 #' @keywords postprocess data
+#' #' @examples
+#'  \dontrun{
+#'  plist<-create_parcel_list_v2(mesoclimate,parcels_v,id='gid',
+#'  input_names=c("tmax", "tmin","swrad","lwrad","relhum","pres","prec", "windspeed"),
+#'  output_names=c("tmax", "tmin","swdown","lwdown","spchum","pres","prec", "windspeed") )
+#'  }
 create_parcel_list<-function(climdata,parcels,id='gid',
-                             input_names=c("tmax", "tmin","swrad","lwrad","relhum","pres","prec", "windspeed"),
-                             output_names=c("tmax", "tmin","swdown","lwdown","relhum","pres","prec", "windspeed"),
-                             roundings=c(2,2,1,1,1,1,2,3)){
+                                input_names=c("tmax", "tmin","swrad","lwrad","relhum","pres","prec", "windspeed"),
+                                output_names=c("tmax", "tmin","swdown","lwdown","relhum","pres","prec", "windspeed")
+){
   if(any(!input_names %in% names(climdata))) stop('Input name NOT found in climate dataset provided')
   if(length(input_names)!=length(output_names)) stop('Different number of input and output names!!!')
-  if(length(roundings)!=length(output_names)) stop('Different number of rounding values and output names!!!')
   parcels<-st_as_sf(parcels)
   dtmf<-climdata$dtm
 
@@ -34,17 +43,34 @@ create_parcel_list<-function(climdata,parcels,id='gid',
   for (n in 1:length(input_names)){
     vin<-input_names[n]
     vout<-output_names[n]
-    rnd<-roundings[n]
+    # Determine rounding of values
+    if(vin %in% c("tmax", "tmin","prec")) rnd<-2
+    if(vin %in% c("swdown","lwdown","relhum","pres")) rnd<-1
+    if(vin=="windspeed") rnd<-3
     print(vin)
-    r<-climdata[[vin]]
+
+    # Get specific humidity if requested or  existing variable
+    if(vin=='relhum' & vout=='spchum'){
+      print('Converting from relative to specific himidity')
+      tmean<-(climdata$tmax+climdata$tmin)/2
+      spchum<-converthumidity(mesoclim:::.is(climdata$relhum),
+                              intype='relative',outtype='specific',
+                              tc=mesoclim:::.is(tmean),
+                              pk=mesoclim:::.is(climdata$pres) )
+      r<-mesoclim:::.rast(spchum,climdata$relhum)
+      rnd<-4
+    } else r<-climdata[[vin]]
+
+    vals<-round(exactextractr::exact_extract(r,parcels,'mean', weights='area'),rnd)
+
     #vals<-t(terra::extract(r,parcels,fun=mean,weights=TRUE,raw=TRUE,na.rm=TRUE, ID=FALSE)) # matrix of timestep x parcel
-    vals<-round(exact_extract(r,parcels,'mean', weights='area'),rnd)
     #for(n in 1:length(parcels)) parcel_list[[n]][[vout]]<-round(vals[,n],rnd)
     for(p in 1:nrow(parcels)) parcel_list[[p]][[vout]]<-as.numeric(vals[p,])
   }
 
   return(parcel_list)
 }
+
 
 
 #' @title Write parcel climate .csv files
