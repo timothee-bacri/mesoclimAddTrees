@@ -4,16 +4,7 @@
 \alias{create_parcel_list}
 \title{Calculates climate timeseries for vector parcels}
 \usage{
-create_parcel_list(
-  climdata,
-  parcels,
-  id = "gid",
-  input_names = c("tmax", "tmin", "swrad", "lwrad", "relhum", "pres", "prec",
-    "windspeed"),
-  output_names = c("tmax", "tmin", "swdown", "lwdown", "relhum", "pres", "prec",
-    "windspeed"),
-  roundings = c(2, 2, 1, 1, 1, 1, 2, 3)
-)
+create_parcel_list(climdata, parcels, id = "gid", output_spechum = FALSE)
 }
 \arguments{
 \item{climdata}{\itemize{
@@ -27,6 +18,10 @@ create_parcel_list(
 \item{id}{\itemize{
 \item string of variable name in parcels corresponding to parcel identification field
 }}
+
+\item{output_spechum}{\itemize{
+\item if TRUE also outputs specific humidity
+}}
 }
 \value{
 list of dataframes of climate variable timeseries by parcel.
@@ -34,5 +29,22 @@ list of dataframes of climate variable timeseries by parcel.
 \description{
 Calculates timeseries of climate variables for each polygon in parcels using weighted means of overlapping grid cells.
 }
+\details{
+Output variables, order and names:
+"tmax", "tmin","swdown","lwdown","spchum","pres","prec", "windspeed" and
+if requested using output_spechum, "spchum"
+}
+\keyword{"tmin","swdown","lwdown","spchum","pres","prec",}
+\keyword{"tmin","swrad","lwrad","relhum","pres","prec",}
+\keyword{"windspeed")}
+\keyword{"windspeed"),}
+\keyword{#'}
+\keyword{)}
+\keyword{@examples}
+\keyword{\dontrun{}
 \keyword{data}
+\keyword{input_names=c("tmax",}
+\keyword{output_names=c("tmax",}
+\keyword{plist<-create_parcel_list_v2(mesoclimate,parcels_v,id='gid',}
 \keyword{postprocess}
+\keyword{}}
