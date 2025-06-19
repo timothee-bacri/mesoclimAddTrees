@@ -3,6 +3,9 @@
 ############## LIBRARIES ####################### #######################
 # install_gitgub("ilyamaclean/mesoclim")
 # install_gitgub("jrmosedale/mesoclimAddTrees")
+prj <- system.file("proj", package = "terra")[1]
+Sys.setenv("PROJ_LIB" = prj)
+library(devtools)
 library(terra)
 library(sf)
 library(mesoclimAddTrees)
@@ -20,6 +23,8 @@ dir_root<-"D:"
 
 # Filepath to vector file of parcels (produced by ellicitor app - defines AOI and Outputs)
 parcels_file<-file.path(dir_root,'mesoclim_inputs','parcels','land_parcels.shp') # elicitor app output file
+parcels_file<-file.path(dir_root,'mesoclim_inputs','parcels','exmoor_parcels.shp') # elicitor app output file
+parcels_file<-file.path(dir_root,'mesoclim_inputs','parcels','exm_parcels.shp') # elicitor app output file
 # parcels_file<-file.path(dir_root,'mesoclim_inputs','parcels','PDNPA_Boundary.shp')
 file.exists(parcels_file)
 
