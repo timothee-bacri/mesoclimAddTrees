@@ -7,7 +7,7 @@
 addtrees_sstdata(
   startdate,
   enddate,
-  aoi = NA,
+  dtmc,
   member = c("01", "02", "03", "04", "05", "06", "07", "08", "09", "10", "11", "12",
     "13", "14", "15"),
   basepath = "",
@@ -19,7 +19,7 @@ addtrees_sstdata(
 
 \item{enddate}{end date as POSIXlt}
 
-\item{aoi}{SpatRaster, SpatVector or sf object defining area of interest to crop data. NA no cropping occurs}
+\item{dtmc}{SpatRaster defining area of interest to crop data. NA no cropping occurs}
 
 \item{basepath}{\itemize{
 \item "" for jasmin use

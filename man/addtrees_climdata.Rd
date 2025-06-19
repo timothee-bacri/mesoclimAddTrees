@@ -22,6 +22,8 @@ addtrees_climdata(
     "m/s", "m/s"),
   output_units = c("\%", "\%", "mm/day", "kPa", "watt/m^2", "watt/m^2", "degC", "degC",
     "m/s", "m/s"),
+  temp_hgt = 1.5,
+  wind_hgt = 10,
   toArrays = TRUE,
   sampleplot = FALSE
 )

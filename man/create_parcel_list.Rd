@@ -4,7 +4,13 @@
 \alias{create_parcel_list}
 \title{Calculates climate timeseries for vector parcels}
 \usage{
-create_parcel_list(climdata, parcels, id = "gid", output_spechum = FALSE)
+create_parcel_list(
+  climdata,
+  parcels,
+  id = "gid",
+  output_tmean = TRUE,
+  output_spechum = FALSE
+)
 }
 \arguments{
 \item{climdata}{\itemize{
@@ -17,6 +23,10 @@ create_parcel_list(climdata, parcels, id = "gid", output_spechum = FALSE)
 
 \item{id}{\itemize{
 \item string of variable name in parcels corresponding to parcel identification field
+}}
+
+\item{output_tmean}{\itemize{
+\item output tmean to parcel file -  must be among climdata variables
 }}
 
 \item{output_spechum}{\itemize{
