@@ -20,11 +20,13 @@
 #'  input_names=c("tmax", "tmin","swrad","lwrad","relhum","pres","prec", "windspeed"),
 #'  output_names=c("tmax", "tmin","swdown","lwdown","spchum","pres","prec", "windspeed") )
 #'  }
-create_parcel_list<-function(climdata,parcels,id='gid',
-                             output_spechum=FALSE){
+create_parcel_list<-function(climdata,parcels,id='gid', output_tmean=TRUE,output_spechum=FALSE){
   input_names<-c("tmax", "tmin","swrad","lwrad","relhum","pres","prec", "windspeed")
   output_names<-c("tmax", "tmin","swdown","lwdown","relhum","pres","prec", "windspeed")
-
+  if(output_tmean){
+    input_names<-c("tmean",input_names)
+    output_names<-c("tmean",output_names)
+  }
   if(any(!input_names %in% names(climdata))) stop('Input name NOT found in climate dataset provided')
   if(length(input_names)!=length(output_names)) stop('Different number of input and output names!!!')
   parcels<-st_as_sf(parcels)
@@ -45,7 +47,7 @@ create_parcel_list<-function(climdata,parcels,id='gid',
     vin<-input_names[n]
     vout<-output_names[n]
     # Determine rounding of values
-    if(vin %in% c("tmax", "tmin","prec")) rnd<-2
+    if(vin %in% c("tmean","tmax", "tmin","prec")) rnd<-2
     if(vin %in% c("swdown","lwdown","relhum","pres")) rnd<-1
     if(vin=="windspeed") rnd<-3
     print(vin)
@@ -56,7 +58,7 @@ create_parcel_list<-function(climdata,parcels,id='gid',
   # Add specific humidity if requested
   if(output_spechum){
     print('Converting from relative to specific humidity')
-    tmean<-(climdata$tmax+climdata$tmin)/2
+    if("tmean" %in% names(climdata)) tmean<-climdata$tmean else tmean<-(climdata$tmax+climdata$tmin)/2
     spchum<-converthumidity(mesoclim:::.is(climdata$relhum),
                             intype='relative',outtype='specific',
                             tc=mesoclim:::.is(tmean),
