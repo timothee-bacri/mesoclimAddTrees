@@ -295,7 +295,7 @@ addtrees_climdata <- function(dtmc, startdate, enddate,
 #'
 #' @param startdate start date as POSIXlt
 #' @param enddate end date as POSIXlt
-#' @param aoi SpatRaster, SpatVector or sf object defining area of interest to crop data. NA no cropping occurs
+#' @param dtmc SpatRaster defining area of interest to crop data. NA no cropping occurs
 #' @param members model members to be included
 #' @param v = SST sea surface temperature
 #' @param basepath - "" for jasmin use
@@ -313,7 +313,7 @@ addtrees_climdata <- function(dtmc, startdate, enddate,
 addtrees_sstdata<-function(
     startdate,
     enddate,
-    aoi=NA,
+    dtmc,
     member=c('01','02','03','04','05','06','07','08','09','10','11','12','13','14','15') ,
     basepath="",
     v='SST' ){
@@ -343,7 +343,7 @@ addtrees_sstdata<-function(
   var_r<-terra::rast()
   for(f in ncfiles){
     r<- rast(f, subds = v, drivers="NETCDF")
-    r<-mesoclim:::.sea_to_coast(sst.r=r,aoi.r=dtmc)
+    if(!inherits(dtmc,"logical")) r<-mesoclim:::.sea_to_coast(sst.r=r,aoi.r=dtmc)
     units(r)<-'degC'
     # Join if multiple decades of data
     terra::add(var_r)<-r
