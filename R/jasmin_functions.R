@@ -173,6 +173,7 @@ addtrees_climdata <- function(dtmc, startdate, enddate,
                                            'degC','degC','m/s','m/s'),
                               output_units=c('%','%','mm/day','kPa','watt/m^2','watt/m^2',
                                              'degC','degC','m/s','m/s'),
+                              temp_hgt=1.5, wind_hgt=10, # heights in UKCP data
                               toArrays=TRUE, sampleplot=FALSE){
   # Parameter check
   collection<-match.arg(collection)
@@ -182,6 +183,12 @@ addtrees_climdata <- function(dtmc, startdate, enddate,
   output_units<-match.arg(output_units,several.ok=TRUE)
   if(class(startdate)[1]!="POSIXlt" | class(enddate)[1]!="POSIXlt") stop("Date parameters NOT POSIXlt class!!")
   if(!class(dtmc)[1] %in% c("SpatRaster") ) stop("dtmc parameter is NOT a SpatRaster!!!")
+
+  # Check dtmc in correct EPSG for UK rcm!!
+  if(terra::crs(dtmc) !="EPSG:27700"){
+    warning("Crs of dtmc parameter to addtrees_climdata if NOT EPSG:27700 - converting!!")
+    dtmc<-project(dtmc,"EPSG:27700")
+  }
 
   # Check member in chosen collection
   member<-match.arg(member)
@@ -198,6 +205,9 @@ addtrees_climdata <- function(dtmc, startdate, enddate,
   # Jasmin basepath
   basepath<-file.path(basepath,"badc","ukcp18","data",collection,domain,collres,rcp)
 
+  # Function to restrict to dates requested
+  filter_times<-function(x,startdate,enddate) x[[which(date(time(x)) >= startdate & date(time(x))  <= enddate)]]
+
   # Load spatrasters from ukcp.nc file, crop to dtmc, convert to normal calendar and add to output list
   clim_list<-list()
   for (n in 1:length(ukcp_vars)){
@@ -213,7 +223,7 @@ addtrees_climdata <- function(dtmc, startdate, enddate,
 
       # Load and crop data in native crs then project to dtmc crs and recrop
       r <- terra::rast(ncfile, subds=v)
-      terra::crs(r)<-terra::crs(dtmc)
+      if(collection=="land-rcm" & domain=="uk") crs(r)<-"EPSG:27700"
       r<-terra::crop(r,dtmc)
 
       # If requested then convert to real calendar dates and fill missing dates
@@ -232,6 +242,9 @@ addtrees_climdata <- function(dtmc, startdate, enddate,
       # Join if multiple decades of data
       terra::add(var_r)<-r
     }
+    # Filter times
+    var_r<-filter_times(var_r,startdate,enddate)
+
     # Check & convert units, check all rasters geoms are same
     if(ukcp_u!=out_u) var_r<-mesoclim::.change_rast_units(var_r, out_u)
     if(!terra::compareGeom(dtmc,var_r)) warning(paste(v,"Spatrast NOT comparable to DTM!!") )
@@ -239,8 +252,10 @@ addtrees_climdata <- function(dtmc, startdate, enddate,
   }
 
   # Calculate derived variables: wind
-  clim_list$windspeed<-terra::rast(sqrt(as.array(clim_list$uas)^2+as.array(clim_list$vas)^2)*log(67.8*2-5.42)/log(67.8*10-5.42),extent=terra::ext(dtmc),crs=terra::crs(dtmc))
-  clim_list$winddir<-terra::rast(as.array((terra::atan2(clim_list$uas,clim_list$vas)*180/pi+180)%%360),crs=terra::crs(dtmc)) #  (deg from N)
+  windspeed<-sqrt(as.array(clim_list$uas)^2+as.array(clim_list$vas)^2)
+  windspeed<-mesoclim:::.windhgt(windspeed,zi=wind_hgt,zo=wind_hgt)
+  clim_list$windspeed<-mesoclim:::.rast(windspeed,dtmc) # Wind speed (m/s)
+  clim_list$winddir<-mesoclim:::.rast(as.array((terra::atan2(clim_list$uas,clim_list$vas)*180/pi+180)%%360),dtmc) # Wind direction (deg from N - from)
   units(clim_list$windspeed)<-'m/s'
   units(clim_list$winddir)<-'deg'
   terra::time(clim_list$windspeed)<-terra::time(clim_list$uas)
@@ -249,7 +264,8 @@ addtrees_climdata <- function(dtmc, startdate, enddate,
   names(clim_list$winddir)<-terra::time(clim_list$winddir)
 
   # Calculate derived variables: longwave downward
-  tmean<-(clim_list$tasmax+clim_list$tasmin)/2
+  tme<-as.POSIXlt(time(clim_list$tasmax),tz="UTC")
+  tmean<-mesoclim:::.hourtoday(temp_dailytohourly(clim_list$tasmin, clim_list$tasmax, tme),mean)
   lwup<-terra::app(tmean, fun=mesoclim::.lwup)
   clim_list$lwdown<-clim_list$rls+lwup
 
@@ -260,16 +276,12 @@ addtrees_climdata <- function(dtmc, startdate, enddate,
   clim_list<-clim_list[c("clt","hurs","pr","psl","lwdown","swdown","tasmax","tasmin", "windspeed","winddir")]
   names(clim_list)<-c('cloud','relhum','prec','pres','lwrad','swrad','tmax','tmin','windspeed','winddir')
 
-  # Restrict to dates requested
-  filter_times<-function(x,startdate,enddate) x[[which(time(x) >= startdate & time(x) <= enddate)]]
-  for(v in names(clim_list)) clim_list[[v]]<-filter_times(clim_list[[v]],startdate,enddate)
-
   ### Create output list
   output_list<-list()
   output_list$dtm<-dtmc
   output_list$tme<-as.POSIXlt(time(clim_list[[1]]),tz="UTC")
-  output_list$windheight_m<-10 # ukcp windspeed at 10 metres height
-  output_list$tempheight_m<-1.5 # ukcp air temp at 1.5 metres height
+  output_list$windheight_m<-wind_hgt # ukcp windspeed at 10 metres height
+  output_list$tempheight_m<-temp_hgt # ukcp air temp at 1.5 metres height
 
   # Convert climate data to arrays if required
   if(toArrays) clim_list<-lapply(clim_list,as.array)
@@ -327,36 +339,23 @@ addtrees_sstdata<-function(
   not_present<-which(!file.exists(ncfiles))
   if (length(not_present)>0) stop(paste("Input .nc files required are NOT present: ",ncfiles[not_present]," ") )
 
-  # Create generous cropping area and check not all land
-  if(!class(aoi)=='logical'){
-    if(!class(aoi)[1] %in% c("SpatRaster","SpatVector","sf")) stop("Parameter aoi NOT of suitable spatial class ")
-    if(class(aoi)[1]=="sf") aoi<-vect(aoi)
-    r<-terra::rast(ncfiles[1], subds=v)[[1]]
-    # Crop to area of dtmc plus one cell on all sides
-    aoi_e<-ext(project(aoi,terra::crs(r)))
-    aoi_r<-crop(extend(crop(r,aoi_e,snap='out'),1),r)
-    aoi_r<-crop(r,aoi_r)
-    # Check if any sea cells in crop area
-    if(all(is.na(values(r)))){
-      warning('No sea surface temperature data in dtmc area or adjacent cells!!! Returning NA...')
-      all_land<-TRUE
-      var_r<-NA
-    }
+  # Get spatrast stack
+  var_r<-terra::rast()
+  for(f in ncfiles){
+    r<- rast(f, subds = v, drivers="NETCDF")
+    r<-mesoclim:::.sea_to_coast(sst.r=r,aoi.r=dtmc)
+    units(r)<-'degC'
+    # Join if multiple decades of data
+    terra::add(var_r)<-r
   }
-  # Get cropped spatrast stack of sea surface temperatures
-  if(!all_land){
-    var_r<-terra::rast()
-    for(f in ncfiles){
-      r<- rast(f, subds = v, drivers="NETCDF")
-      if(!class(aoi)[1]=='logical') r<-crop(r,aoi_e)
-      units(r)<-'degC'
-      # Join if multiple decades of data
-      terra::add(var_r)<-r
-    }
-    # Select relevant months
-    tme<-terra::time(var_r)
-    var_r<-var_r[[which(terra::time(var_r) %within%  interval(start-month(1), end+month(1)) ) ]]
-    names(var_r)<-terra::time(var_r)
+  # Select relevant months
+  tme<-terra::time(var_r)
+  var_r<-var_r[[which(terra::time(var_r) %within%  interval(start-month(1), end+month(1)) ) ]]
+  names(var_r)<-terra::time(var_r)
+  # If no valid sea temperatures (eg all land area) return NA
+  if(all(is.na(values(var_r[[1]])))){
+    message("No valid sea cells found in area requested!!")
+    var_r<-NA
   }
   return(var_r)
 }
