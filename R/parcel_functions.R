@@ -4,6 +4,7 @@
 #' @param climdata - list of SpatRasters of downscaled mesoclimate variables as output by `spatialdownscale`
 #' @param parcels - sf or vect describing polygons for which climate data is required
 #' @param id - string of variable name in parcels corresponding to parcel identification field
+#' @param output_tmean - output tmean to parcel file -  must be among climdata variables
 #' @param output_spechum - if TRUE also outputs specific humidity
 #' @details
 #' Output variables, order and names:
