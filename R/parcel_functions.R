@@ -17,9 +17,10 @@
 #' @keywords postprocess data
 #' #' @examples
 #'  \dontrun{
-#'  plist<-create_parcel_list_v2(mesoclimate,parcels_v,id='gid',
-#'  input_names=c("tmax", "tmin","swrad","lwrad","relhum","pres","prec", "windspeed"),
-#'  output_names=c("tmax", "tmin","swdown","lwdown","spchum","pres","prec", "windspeed") )
+#'  daily100m<-mesoclim::read_climdata(mesoclim::daily100m)
+#'  parcels_v<-terra::vect(system.file("extdata/porthleven_parcels.shp",package="mesoclimAddTrees"))
+#'  plist<-create_parcel_list(daily100m,parcels_v,id='gid', output_tmean=FALSE,output_wdir=TRUE,output_dif=TRUE)
+#'  names(plist[[1]])
 #'  }
 create_parcel_list<-function(climdata,parcels,id='gid', output_tmean=TRUE,output_spechum=FALSE,output_wdir=FALSE, output_dif=FALSE){
   input_names<-c("tmax", "tmin","swrad","lwrad","relhum","pres","prec", "windspeed")
