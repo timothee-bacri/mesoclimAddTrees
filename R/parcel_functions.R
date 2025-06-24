@@ -21,12 +21,20 @@
 #'  input_names=c("tmax", "tmin","swrad","lwrad","relhum","pres","prec", "windspeed"),
 #'  output_names=c("tmax", "tmin","swdown","lwdown","spchum","pres","prec", "windspeed") )
 #'  }
-create_parcel_list<-function(climdata,parcels,id='gid', output_tmean=TRUE,output_spechum=FALSE){
+create_parcel_list<-function(climdata,parcels,id='gid', output_tmean=TRUE,output_spechum=FALSE,output_wdir=FALSE, output_dif=FALSE){
   input_names<-c("tmax", "tmin","swrad","lwrad","relhum","pres","prec", "windspeed")
   output_names<-c("tmax", "tmin","swdown","lwdown","relhum","pres","prec", "windspeed")
   if(output_tmean){
     input_names<-c("tmean",input_names)
     output_names<-c("tmean",output_names)
+  }
+  if(output_wdir){
+    input_names<-c(input_names,"winddir")
+    output_names<-c(output_names,"winddir")
+  }
+  if(output_dif){
+    input_names<-c(input_names,"difrad")
+    output_names<-c(output_names,"difrad")
   }
   if(any(!input_names %in% names(climdata))) stop('Input name NOT found in climate dataset provided')
   if(length(input_names)!=length(output_names)) stop('Different number of input and output names!!!')
