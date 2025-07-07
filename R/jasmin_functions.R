@@ -95,25 +95,23 @@ get_ukcp_dtm<-function(aoi, ukcpdtm_file){
   return(dtmc_out)
 }
 
-#' @title Calculate medium resolution dtm from aoi, coarse (ukcp) dtmc and uk wide fine scale dtmuk
+#' @title Calculate medium extent dtm (holding function)
 #'
-#' @param aoi - area of interest spatvector, raster or sf
-#' @param dtmc - coarse dtm spatraster
+#' @param dtmc - coarse dtm spatraster of area of inputs
 #' @param dtmuk - uk wide fine resolution dtm spatraster
-#' @param basepath - "" when using on jasmin
+#' @param coast_v - coastal terra vector of whole area covered by dmtuk
 #'
-#' @return spatraster object
+#' @return spatraster object matching resolution of dtmuk and extent of dtmc
 #' @export
 #' @importFrom terra res mask crop aggregate
 #' @keywords preprocess
 #' @examples
 #' \dontrun{
-#' dtmm<-get_dtmm(aoi,dtmc,dtmuk,basepath=ceda_basepath)
+#' dtmm<-get_dtmm(dtmc,dtmuk)
 #' }
-get_dtmm<-function(dtmf,dtmc,dtmuk){
-  dtmm_res<-round(exp( ( log(terra::res(dtmc)[1]) + log(terra::res(dtmf)[1]) ) / 2 ))
-  dtmm_f<-terra::mask(terra::crop(terra::crop(dtmuk,dtmc),dtmuk),coast_v)
-  dtmm<-terra::mask(terra::aggregate(dtmm_f,dtmm_res / res(dtmf),  na.rm=TRUE),coast_v, touches=FALSE)
+get_dtmm<-function(dtmc,dtmuk,coast_v){
+  #dtmm_res<-round(exp( ( log(terra::res(dtmc)[1]) + log(terra::res(dtmf)[1]) ) / 2 ))
+  dtmm<-terra::mask(terra::crop(terra::crop(dtmuk, dtmc), dtmuk), coast_v)
   return(dtmm)
 }
 
